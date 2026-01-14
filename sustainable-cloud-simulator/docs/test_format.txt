@@ -1,0 +1,84 @@
+The Sustainable "AI-Ready" Cloud Data Center Simulator is a high-level project that
+addresses Environmental Intelligence. In 2026, IT departments are moving from simple
+automation to "Carbon-Aware" computing, where software actively seeks to minimize its
+ecological impact by following the sun or the wind.
+1. Project Overview
+This project involves building a Digital Twin (a virtual simulation) of a cloud data center. It
+uses Data Science to model renewable energy availability (Solar/Wind) and AI to intelligently
+schedule "heavy" computing tasks for times when the carbon footprint is lowest. The goal is
+to prove that AI can balance high-performance computing with zero-carbon goals.
+2. Industrial Application
+●
+●
+●
+●
+Sector: Cloud Providers (AWS/Azure/GCP), Green Energy, Enterprise IT.
+Problem: Data centers consume massive amounts of electricity. Often, they run heavy
+batch jobs (like training other AI models or processing logs) using "dirty" grid power
+when they could have waited a few hours for "clean" renewable energy.
+Solution: A Carbon-Aware Scheduler that dynamically shifts workloads in time
+(Temporal Shifting) or location (Spatial Shifting) based on real-time green energy
+availability.
+Real-World Example: Google’s Carbon-Intelligent Computing Platform, which shifts
+non-urgent tasks to times when wind and solar power are most plentiful.
+3. Architecture & Workflow
+The system utilizes a "Predict-Optimize-Execute" pipeline:
+●
+Data Science (The Environmental Twin):
+○
+Ingests historical Weather Datasets (Solar radiation, Wind speed) to model how
+much "Green Power" is available at any given hour.
+○
+Models Server PUE (Power Usage Effectiveness) to calculate how much cooling
+energy is needed based on ambient temperature.
+●
+AI Engine (Reinforcement Learning):
+○
+Uses a Deep Q-Network (DQN) agent.
+○
+State: Current task queue, current solar intensity, current electricity price.
+○
+Action: Execute task now, Delay task, or Hibernate server.
+○
+Reward: The agent receives points for using 100% renewable energy and loses
+points for using grid power or missing a task deadline.
+●
+Cloud Orchestration (The "Action" Layer):
+○
+AWS Step Functions: Manages the logic flow. If the AI says "Wait,
+" the Step Function
+puts the task in a "Holding State.
+"
+○
+AWS Lambda: Executes the actual "simulated" workload when the AI provides the
+"Green Signal.
+"
+●
+Visualization & Analytics:
+○
+A dashboard tracks "Carbon Avoided" (the amount of $CO
+2$ that would have been
+_
+emitted if not for the AI's scheduling).
+4. Technology Stack
+●
+●
+●
+●
+●
+●
+Cloud Provider: AWS or Azure.
+Data Science: Python (Pandas, NumPy), OpenWeatherMap API (for historical solar/wind
+data).
+AI/ML: Stable-Baselines3 (for the DQN algorithm) or TensorFlow.
+Compute/Orchestration: AWS Step Functions, AWS Lambda, Amazon EventBridge.
+Database: Amazon DynamoDB (to store the "Green Status" of different virtual regions).
+Dashboard: Streamlit (to visualize energy curves vs. workload spikes).
+Key Project Differentiator
+To impress your evaluators, highlight the concept of "Temporal Shifting.
+"
+Explain that your AI understands that a backup job doesn't need to
+happen at 6:00 PM (peak grid demand); it can wait until 2:00 AM when
+wind energy is peaking and the grid is "cleaner.
+" This demonstrates a
+deep understanding of Sustainable IT (GreenOps).
