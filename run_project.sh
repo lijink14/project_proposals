@@ -1,8 +1,11 @@
 #!/bin/bash
 
 # Define Directory
-PROJECT_DIR="sustainable-cloud-simulator"
-cd "$PROJECT_DIR"
+
+# Define Directory
+# PROJECT_DIR="." 
+# Script is now in root
+
 
 echo "=========================================================="
 echo "   Sustainable AI-Ready Cloud Data Center Simulator"
