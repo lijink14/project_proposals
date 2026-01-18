@@ -19,15 +19,17 @@ This project is a **Digital Twin Simulation** of a modern, eco-friendly Cloud Da
 *   **Data**: Pandas, NumPy
 
 ## 4. How to Run
-This project includes an automated setup script.
+This project includes automated setup scripts for both Linux/Mac and Windows.
 
-1.  Open your terminal.
+### For Mac / Linux:
+1.  Open terminal.
 2.  Navigate to the project folder.
-3.  Run the script:
-    ```bash
-    bash run_project.sh
-    ```
-    *This will create a virtual environment, install dependencies, train the AI, and launch the dashboard.*
+3.  Run: `bash run_project.sh`
+
+### For Windows:
+1.  Open Command Prompt or PowerShell.
+2.  Navigate to the project folder.
+3.  Run: `run_project.bat`
 
 ## 5. Project Structure
 *   `app.py`: The Main Dashboard interface.

@@ -14,7 +14,7 @@ def train():
     
     # Initialize Agent
     # We use PPO (Proximal Policy Optimization) - good generic RL algorithm
-    model = PPO("MlpPolicy", env, verbose=1, tensorboard_log=log_dir)
+    model = PPO("MlpPolicy", env, verbose=1)
     
     print("Training Agent for 10,000 steps...")
     model.learn(total_timesteps=10000)

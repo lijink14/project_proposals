@@ -1,0 +1,112 @@
+/* --- COMPACT DASHBOARD THEME (High Contrast & Clean Headers) --- */
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+.stApp {
+    background-color: #EEF2F9 !important;
+}
+
+html,
+body,
+[class*="css"] {
+    font-family: 'Inter', sans-serif;
+    color: #2D3748;
+}
+
+/* SIDEBAR - Dark Blue Theme */
+[data-testid="stSidebar"] {
+    background-color: #545ABC !important;
+}
+
+/* Sidebar Text Color Strategy: Aggressive but Safe */
+/* 1. Force Headers & Standard Text to White */
+[data-testid="stSidebar"] h1,
+[data-testid="stSidebar"] h2,
+[data-testid="stSidebar"] h3,
+[data-testid="stSidebar"] label,
+[data-testid="stSidebar"] .stMarkdown p,
+[data-testid="stSidebar"] .stCaption,
+[data-testid="stSidebar"] div[data-testid="stMarkdownContainer"] p {
+    color: #FFFFFF !important;
+}
+
+/* 2. Fix Slider Ticks & Values (The invisible items) */
+[data-testid="stSidebar"] div[data-testid="stSliderTickBar"]>div,
+[data-testid="stSidebar"] div[data-testid="stSliderValue"] {
+    color: #FFFFFF !important;
+}
+
+/* 3. Catch-all for other text, excluding inputs */
+[data-testid="stSidebar"] div:not([data-baseweb="select"]):not([data-baseweb="input"]) {
+    color: #FFFFFF;
+}
+
+
+/* Ensure Selectbox/Input Internal Text remains Dark */
+[data-testid="stSidebar"] div[data-baseweb="select"]>div {
+    background-color: #FFFFFF !important;
+    color: #2D3748 !important;
+}
+
+
+/* Dropdown menu items popup (needs to be dark text on white bg) */
+div[role="listbox"] ul {
+    background-color: white !important;
+    color: #333 !important;
+}
+
+div[role="listbox"] li {
+    color: #333 !important;
+    /* Force list items black */
+}
+
+/* COMPACT MAIN CARD STYLING */
+.dashboard-card {
+    background-color: #FFFFFF;
+    border-radius: 12px;
+    padding: 16px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.6);
+    margin-bottom: 15px;
+    height: 100%;
+}
+
+/* METRICS */
+.metric-title {
+    font-size: 0.75rem;
+    color: #718096;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 4px;
+}
+
+.metric-value {
+    font-size: 1.5rem;
+    font-weight: 800;
+    color: #1A202C;
+    line-height: 1.2;
+}
+
+.metric-sub {
+    font-size: 0.7rem;
+    font-weight: 600;
+    margin-top: 4px;
+    display: inline-block;
+    padding: 2px 6px;
+    border-radius: 4px;
+}
+
+.sub-neutral {
+    background: #E2E8F0;
+    color: #2D3748;
+}
+
+/* BUTTONS */
+div.stButton>button {
+    background: #5E63D8 !important;
+    color: white !important;
+    height: auto !important;
+    padding: 6px 16px !important;
+    font-size: 0.85rem !important;
+}
