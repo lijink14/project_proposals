@@ -4,3 +4,7 @@ __pycache__/
 tmp/
 .DS_Store
 .backup/
+.venv/
+./aws_credentials.json
+./aws_deployment/Lambda/dependency
+

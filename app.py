@@ -24,6 +24,15 @@ def local_css(file_name):
         st.markdown(f'<style>{f.read()}</style>', unsafe_allow_html=True)
 local_css("assets/compact.css") 
 
+@st.cache_data
+def load_historical_weather():
+    try:
+        df = pd.read_csv("historical_weather_6mo.csv")
+        df['time'] = pd.to_datetime(df['time'])
+        return df
+    except:
+        return None
+
 # --- DATA AGENT ---
 @st.cache_data
 def get_dynamic_model(user_mult, solar_cap, weather_type):
@@ -511,23 +520,64 @@ if st.session_state['audit_active']:
     st.markdown('<div class="analysis-reveal">', unsafe_allow_html=True)
     
     # Chart Logic
-    st.markdown(f"### 🕒 Hourly Energy Mix: {audit_picker.strftime('%B %d, %Y')}")
-    st.caption("Live Audit Stream. Click anywhere outside this card to reset.")
-    
-    random.seed(int(audit_picker.strftime("%Y%m%d")))
-    day_type = random.choice(["Sunny", "Rainy", "Cloudy"])
     hours_list = [f"{h:02d}:00" for h in range(24)]
     
-    if day_type == "Sunny":
-        mix_data = [20, 20, 20, 30, 50, 75, 95, 100, 100, 95, 80, 60, 40, 30, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20]
-        desc_text = "✨ **Solar Peak:** 100% Green penetration achieved during daylight hours."
-    elif day_type == "Rainy":
-        mix_data = [random.randint(5, 15) for _ in range(24)]
-        desc_text = "🌧️ **Grid Strain:** High reliance on non-renewable sources."
-    else:
-        mix_data = [random.randint(30, 70) for _ in range(24)]
-        desc_text = "☁️ **Variable Load:** AI balanced mixed energy inputs."
+    # Try to load real data
+    weather_df = load_historical_weather()
+    found_data = False
+    mix_data = []
+    desc_text = ""
+
+    if weather_df is not None:
+        mask = weather_df['time'].dt.date == audit_picker
+        day_data = weather_df[mask]
         
+        if len(day_data) >= 24:
+            found_data = True
+            # Use real solar radiation to simulate energy mix
+            # Map 0-1000 W/m2 to 0-100 scale (with a base grid mix of 20%)
+            solar_vals = day_data['solar_radiation_w_m2'].values[:24]
+            mix_data = np.clip(20 + (solar_vals / 900 * 80), 0, 100).astype(int)
+            
+            avg_sol = solar_vals.mean()
+            if avg_sol > 200:
+                desc_text = f"☀️ **Real Historical Data:** High Solar Output detected ({int(avg_sol)} W/m² avg)."
+            elif avg_sol > 50:
+                 desc_text = f"☁️ **Real Historical Data:** Variable Cloud Cover ({int(avg_sol)} W/m² avg)."
+            else:
+                 desc_text = f"🌧️ **Real Historical Data:** Low Solar Generation ({int(avg_sol)} W/m² avg)."
+            
+            # Clean text without HTML
+            desc_text += "\n\nHistorical weather data sourced from **Open-Meteo** API."
+
+    if not found_data:
+        random.seed(int(audit_picker.strftime("%Y%m%d")))
+        day_type = random.choice(["Sunny", "Rainy", "Cloudy"])
+        
+        if day_type == "Sunny":
+            mix_data = [20, 20, 20, 30, 50, 75, 95, 100, 100, 95, 80, 60, 40, 30, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20]
+            desc_text = "✨ **Solar Peak:** 100% Green penetration achieved during daylight hours."
+        elif day_type == "Rainy":
+            mix_data = [random.randint(5, 15) for _ in range(24)]
+            desc_text = "🌧️ **Grid Strain:** High reliance on non-renewable sources."
+        else:
+            mix_data = [random.randint(30, 70) for _ in range(24)]
+            desc_text = "☁️ **Variable Load:** AI balanced mixed energy inputs."
+        
+        desc_text += "\n\n*(Simulated Data)*"
+
+    # --- Header Layout ---
+    # Logo moves to top right
+    c_head_1, c_head_2 = st.columns([0.85, 0.15])
+    with c_head_1:
+         st.markdown(f"### 🕒 Hourly Energy Mix: {audit_picker.strftime('%B %d, %Y')}")
+         st.caption("Live Audit Stream. Click anywhere outside this card to reset.")
+    
+    if found_data:
+        with c_head_2:
+             st.image(r"C:\Users\shari\Documents\Project\image_reference\OIP.jpeg", width=50)
+
+    # --- Chart ---
     fig_deep = go.Figure(data=go.Heatmap(
         z=np.array(mix_data).reshape(1, 24),
         x=hours_list, y=['Mix'],
@@ -536,6 +586,8 @@ if st.session_state['audit_active']:
     ))
     fig_deep.update_layout(height=150, margin=dict(l=0,r=0,t=0,b=0), template="plotly_white", yaxis=dict(visible=False))
     st.plotly_chart(fig_deep, use_container_width=True)
+    
+    # --- Description (Single Column for proper alignment) ---
     st.info(desc_text)
     
     st.markdown('</div>', unsafe_allow_html=True)

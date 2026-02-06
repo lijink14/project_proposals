@@ -1,0 +1,46 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  Weather Prediction Model API
+  Deploys a Lambda function and API Gateway to expose the weather simulation logic.
+
+Globals:
+  Function:
+    Timeout: 10
+    MemorySize: 128
+    Runtime: python3.9
+
+Resources:
+  # Explicit API Gateway Resource
+  WeatherApi:
+    Type: AWS::Serverless::HttpApi
+    Properties:
+      StageName: prod
+      CorsConfiguration:
+        AllowOrigins:
+          - "*"
+        AllowMethods:
+          - GET
+          - POST
+
+  WeatherFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: s3://cloud-scheduler-10/app.zip
+      Handler: app.lambda_handler
+      Description: Returns weather predictions (Simulated or Real)
+      Events:
+        ApiEvent:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref WeatherApi
+            Path: /weather
+            Method: any
+
+Outputs:
+  WeatherApiEndpoint:
+    Description: "API Gateway endpoint URL"
+    Value: !Sub "https://${WeatherApi}.execute-api.${AWS::Region}.amazonaws.com/weather"
+  WeatherFunctionArn:
+    Description: "Weather Lambda Function ARN"
+    Value: !GetAtt WeatherFunction.Arn
