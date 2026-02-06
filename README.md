@@ -41,3 +41,7 @@ This project includes automated setup scripts for both Linux/Mac and Windows.
 1.  **Start the App**: Show the dashboard.
 2.  **Explain the Graphs**: "See how the Green Line (Solar) goes up at noon? The AI attempts to shift the Red Line (Grid usage) to match it."
 3.  **Explain the AI**: "We used Reinforcement Learning. The agent gets 'points' for using Green Energy and loses 'points' for burning coal/grid energy."
+
+
+
+pending : wind integration, logo change for historic data.
