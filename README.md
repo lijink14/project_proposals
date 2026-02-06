@@ -45,3 +45,6 @@ This project includes automated setup scripts for both Linux/Mac and Windows.
 
 
 pending : wind integration, logo change for historic data.
+
+
+.\venv\Scripts\streamlit run app.py
