@@ -20,8 +20,15 @@ st.set_page_config(
 
 # --- CSS ---
 def local_css(file_name):
-    with open(file_name) as f:
-        st.markdown(f'<style>{f.read()}</style>', unsafe_allow_html=True)
+    # specify utf-8 to handle any non-ASCII characters in CSS
+    try:
+        with open(file_name, encoding="utf-8") as f:
+            st.markdown(f'<style>{f.read()}</style>', unsafe_allow_html=True)
+    except UnicodeDecodeError:
+        # fallback: read with latin-1 which maps bytes directly to first 256 unicode points
+        with open(file_name, encoding="latin-1") as f:
+            st.markdown(f'<style>{f.read()}</style>', unsafe_allow_html=True)
+
 local_css("assets/compact.css") 
 
 @st.cache_data
@@ -575,7 +582,17 @@ if st.session_state['audit_active']:
     
     if found_data:
         with c_head_2:
-             st.image(r"C:\Users\shari\Documents\Project\image_reference\OIP.jpeg", width=50)
+            # use a relative path inside the repository so it works on any machine
+            import os
+            base = os.path.dirname(__file__)
+            logo_path = os.path.join(base, "..", "image_reference", "OIP.jpeg")
+            logo_path = os.path.normpath(logo_path)
+            if os.path.exists(logo_path):
+                st.image(logo_path, width=50)
+            else:
+                # fallback: small placeholder (transparent pixel) to avoid crash
+                st.image("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR4nGNgYAQAAAEAAelq7NEAAAAASUVORK5CYII=", width=50)
+                st.warning(f"Logo not found at {logo_path}")
 
     # --- Chart ---
     fig_deep = go.Figure(data=go.Heatmap(

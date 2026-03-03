@@ -48,6 +48,13 @@ body,
     color: #2D3748 !important;
 }
 
+/* 🛠️ Fix for selected value visibility: some inner elements
+   were inheriting the white sidebar color once an item is chosen.
+   Apply the dark color to all descendants of the select container. */
+[data-testid="stSidebar"] div[data-baseweb="select"] * {
+    color: #2D3748 !important;
+}
+
 
 /* Dropdown menu items popup (needs to be dark text on white bg) */
 div[role="listbox"] ul {
