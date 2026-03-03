@@ -585,7 +585,8 @@ if st.session_state['audit_active']:
             # use a relative path inside the repository so it works on any machine
             import os
             base = os.path.dirname(__file__)
-            logo_path = os.path.join(base, "..", "image_reference", "OIP.jpeg")
+            # image_reference lives inside project_proposals, not the parent directory
+            logo_path = os.path.join(base, "image_reference", "OIP.jpeg")
             logo_path = os.path.normpath(logo_path)
             if os.path.exists(logo_path):
                 st.image(logo_path, width=50)
