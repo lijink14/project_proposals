@@ -1,4 +1,4 @@
-# Sustainable "AI-Ready" Cloud Data Center Simulator
+# CARBON AWARE CLOUD SCHEDULER
 **BCA Final Year Project**
 
 ## 1. Overview
