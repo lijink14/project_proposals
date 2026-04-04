@@ -16,8 +16,8 @@ def train():
     # We use PPO (Proximal Policy Optimization) - good generic RL algorithm
     model = PPO("MlpPolicy", env, verbose=1)
     
-    print("Training Agent for 10,000 steps...")
-    model.learn(total_timesteps=10000)
+    print("Training Agent for 100,000 steps...")
+    model.learn(total_timesteps=100000)
     
     # Save Model
     save_path = "models/ppo_datacenter"

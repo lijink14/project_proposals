@@ -29,7 +29,8 @@ def local_css(file_name):
         with open(file_name, encoding="latin-1") as f:
             st.markdown(f'<style>{f.read()}</style>', unsafe_allow_html=True)
 
-local_css("assets/compact.css") 
+local_css("assets/compact.css")
+
 
 @st.cache_data
 def load_historical_weather():
@@ -42,7 +43,7 @@ def load_historical_weather():
 
 # --- DATA AGENT ---
 @st.cache_data
-def get_dynamic_model(user_mult, solar_cap, weather_type):
+def get_dynamic_model(user_mult, solar_cap, wind_cap, weather_type):
     hours = np.linspace(0, 23, 24)
     
     # 1. Weather Impact Logic
@@ -68,6 +69,22 @@ def get_dynamic_model(user_mult, solar_cap, weather_type):
     base_solar = solar_cap * np.exp(-0.15 * (hours - 12)**2)
     solar_gen = base_solar * weather_factor
     solar_gen = np.maximum(solar_gen, 0) # No negative energy
+
+    # 2b. Wind Generation (24h Forecast)
+    # Unlike solar, wind is NOT constrained to daylight hours.
+    # It follows a gentle sine variation (slightly higher at night) scaled by weather.
+    # Storm/rain = strong wind; sunny/calm = weak wind.
+    wind_speed_factors = {
+        "Sunny":         0.25,   # Calm day, light breeze
+        "Partly Cloudy": 0.45,   # Moderate breeze
+        "Overcast":      0.65,   # Stronger winds accompanying cloud systems
+        "Rainy":         0.80,   # Stormy conditions, high wind
+    }
+    wind_factor = wind_speed_factors.get(weather_type, 0.45)
+    # Sine wave: peaks around hour 3-4 (night offshore winds) and hour 15-16 (afternoon sea breeze)
+    wind_base = wind_cap * wind_factor * (0.5 + 0.2 * np.sin(hours / 4.0))
+    wind_noise = np.random.normal(0, wind_cap * 0.03, 24)
+    wind_gen = np.maximum(0, wind_base + wind_noise)
     
     # 3. Load Profiles (Dynamic Reaction)
     # If solar is low (Rainy), AI delays batch jobs -> Flattening the load curve
@@ -109,13 +126,32 @@ def get_dynamic_model(user_mult, solar_cap, weather_type):
 
     # 6. AI Decision Logic (Hybrid: Real PPO Model + Heuristic Explainer)
     decision_log = []
-    
-    # Construct simulated observation for the PPO agent
-    sim_solar = solar_gen.mean()
-    sim_carbon = 800 if weather_type == "Rainy" else 200
+
+    # Use actual current hour so the decision reflects time-of-day conditions
+    current_hour = datetime.now().hour
+
+    # Solar at the current hour (not a flat 24h average)
+    sim_solar_now = float(solar_gen[current_hour])
+
+    # Realistic carbon intensity based on weather + time-of-day peak periods.
+    # Base values mirror the energy model's duck-curve pattern (400 g/kWh base).
+    base_carbon_by_weather = {
+        "Sunny":        350,   # Solar feeding the grid lowers carbon
+        "Partly Cloudy": 430,
+        "Overcast":     490,
+        "Rainy":        580,   # Full grid reliance, no solar offset
+    }
+    sim_carbon = base_carbon_by_weather.get(weather_type, 420)
+    # Morning (8-10) and evening (18-21) are peak demand hours — carbon spikes
+    if 8 <= current_hour <= 10 or 18 <= current_hour <= 21:
+        sim_carbon += 80
+    # At night (no solar window), grid runs on fossil fuels regardless of weather forecast
+    if current_hour < 6 or current_hour > 18:
+        sim_carbon = max(sim_carbon, 430)
+
     sim_queue = user_mult * 10
-    
-    # Define Battery State based on Weather (moved from UI section)
+
+    # Define Battery State based on Weather
     if weather_type == "Sunny":
         bat_pct = 94
     elif weather_type == "Rainy":
@@ -125,10 +161,15 @@ def get_dynamic_model(user_mult, solar_cap, weather_type):
     else: # Overcast
         bat_pct = 55
 
-    # 🔥 LIVE INFERENCE CALL 🔥
-    # Passed bat_pct instead of hardcoded 100
-    action_str, action_id = ai_engine.infer_action(12, sim_solar, 150, sim_carbon, sim_queue, bat_pct)
-    
+    # Wind at current hour (not a flat average)
+    sim_wind_now = float(wind_gen[current_hour])
+
+    # LIVE INFERENCE — correct hour, real solar + wind, calibrated carbon, both capacities passed
+    action_str, action_id = ai_engine.infer_action(
+        current_hour, sim_solar_now, sim_wind_now, sim_carbon, sim_queue, bat_pct,
+        solar_capacity=solar_cap, wind_capacity=wind_cap
+    )
+
     # 1. Traffic Analysis
     if user_mult > 35:
         decision_log.append(f"⚠️ **High Traffic:** Queue depth {int(sim_queue)}. Policy: **{action_str}**")
@@ -136,30 +177,49 @@ def get_dynamic_model(user_mult, solar_cap, weather_type):
         decision_log.append("💤 **Low Traffic:** Consolidated workloads. Efficiency Mode.")
     else:
         decision_log.append(f"✅ **Traffic Nominal:** Policy: **{action_str}** active.")
-        
-    # 2. Weather/Energy Analysis
-    if weather_type == "Rainy":
-        decision_log.append(f"🌧️ **Solar Critical:** Logic detects High Carbon Grid ({sim_carbon}g/kWh).")
-        if action_id == 2: # HOLD
-            decision_log.append("🛑 **AI Decision:** DEFER LOADS. Holding non-critical tasks.")
-        else: 
-             decision_log.append("📉 **AI Decision:** Shedding 60% load to Night cycle.")
-             
-    elif weather_type == "Sunny":
-        decision_log.append("☀️ **Solar Peak:** Grid Carbon Negative.")
-        if action_id == 0: # PROCESS ALL
-             decision_log.append("🚀 **AI Decision:** BOOST MODE. Processing all backlog.")
-        else:
-             decision_log.append("🚀 **AI Decision:** Max Throughput allowed.")
+
+    # 2. Energy Status — based on actual fractions of each farm's rated capacity
+    solar_fraction_pct = int((sim_solar_now / max(1, solar_cap)) * 100)
+    wind_fraction_pct  = int((sim_wind_now  / max(1, wind_cap))  * 100)
+    combined_pct       = int(((sim_solar_now + sim_wind_now) / max(1, solar_cap + wind_cap)) * 100)
+
+    # Solar label
+    if solar_fraction_pct >= 40:
+        solar_label = f"☀️ Solar {solar_fraction_pct}% (strong)"
+    elif solar_fraction_pct >= 15:
+        solar_label = f"⛅ Solar {solar_fraction_pct}% (moderate)"
     else:
-        decision_log.append(f"☁️ **Variable Gen:** AI Action: {action_str} to balance grid.")
+        solar_label = f"🌑 Solar {solar_fraction_pct}% (low)"
+
+    # Wind label
+    if wind_fraction_pct >= 50:
+        wind_label = f"💨 Wind {wind_fraction_pct}% (strong)"
+    elif wind_fraction_pct >= 20:
+        wind_label = f"🌬️ Wind {wind_fraction_pct}% (moderate)"
+    else:
+        wind_label = f"🍃 Wind {wind_fraction_pct}% (low)"
+
+    decision_log.append(f"{solar_label} | {wind_label} | Combined renewables: **{combined_pct}%** | Grid carbon: {sim_carbon}g CO₂/kWh.")
+
+    # 3. AI Decision explanation — honest about energy source and reason
+    if action_id == 0:  # PROCESS_ALL
+        if combined_pct >= 40:
+            decision_log.append(f"🚀 **AI Decision:** BOOST MODE — {combined_pct}% combined renewables available, processing full backlog on clean energy.")
+        elif sim_queue > 400:
+            decision_log.append(f"🚀 **AI Decision:** BACKLOG CRITICAL ({int(sim_queue)} tasks) — clearing queue; renewables at {combined_pct}%, grid supplement active.")
+        else:
+            decision_log.append(f"🚀 **AI Decision:** PROCESS ALL — renewables low ({combined_pct}%), running on grid. Consider deferring non-urgent tasks.")
+    elif action_id == 1:  # ECO
+        decision_log.append(f"🌱 **AI Decision:** ECO MODE — running on {combined_pct}% combined renewables (☀️{solar_fraction_pct}% + 💨{wind_fraction_pct}%). Excess tasks queued for next clean window.")
+    elif action_id == 2:  # HOLD
+        decision_log.append(f"🛑 **AI Decision:** DEFER LOADS — combined renewables only {combined_pct}%, grid carbon {sim_carbon}g. Holding non-critical tasks until cleaner window.")
 
     ai_msg = " ".join([f"<div style='margin-bottom:4px;'>{x}</div>" for x in decision_log])
     
     df_live = pd.DataFrame({
-        "Hour": hours, 
+        "Hour": hours,
         "Compute": load_compute, "Storage": load_storage, "Network": load_network,
-        "Total": total_load, "Solar": solar_gen
+        "Total": total_load, "Solar": solar_gen, "Wind": wind_gen
     })
 
     return df_live, heatmap, tech_scale, ai_msg, bat_pct
@@ -171,6 +231,7 @@ with st.sidebar:
     st.markdown("### Simulation Controls")
     user_mult = st.slider("Active User Traffic", 1, 50, 15)
     solar_cap = st.slider("Solar Farm Capacity (kW)", 0, 2000, 850)
+    wind_cap  = st.slider("Wind Farm Capacity (kW)",  0, 1000, 200)
     
     st.markdown("---")
     st.markdown("### Weather Condition")
@@ -179,11 +240,10 @@ with st.sidebar:
     
 
     st.markdown("---")
-    st.caption("Status: **LOCKED FINAL**")
 
 
 
-df, heatmap, tech_scale, ai_decision, bat_pct = get_dynamic_model(user_mult, solar_cap, w_select)
+df, heatmap, tech_scale, ai_decision, bat_pct = get_dynamic_model(user_mult, solar_cap, wind_cap, w_select)
 
 
 # --- ROW 1: MINI METRICS ---
@@ -191,20 +251,25 @@ c1, c2, c3, c4, c5, c6 = st.columns(6)
 def mini(label, val, sub):
     return f"""<div class="dashboard-card" style="padding:10px;"><div class="metric-title">{label}</div><div class="metric-value" style="font-size:1.4rem;">{val}</div><div class="metric-sub sub-neutral" style="font-size:0.6rem;">{sub}</div></div>"""
 
-total = int(df['Total'].sum())
+total     = int(df['Total'].sum())
 solar_sum = int(df['Solar'].sum())
-# Carbon Saved depends on weather (if Rainy, grid is dirty, so avoiding it saves MORE carbon per kWh, but we used less solar...)
-# Let's simplify: Saved = Solar Gen * 0.5kg
-saved_kg = int(solar_sum * 0.5) 
+wind_sum  = int(df['Wind'].sum())
+renewable_sum = solar_sum + wind_sum
+# Wind fraction at current hour — used in battery panel
+_current_hour = datetime.now().hour
+wind_fraction_pct = int((df['Wind'].iloc[_current_hour] / max(1, wind_cap)) * 100)
+# CO2 avoided: renewables displaced grid at ~0.5 kg CO2/kWh
+saved_kg  = int(renewable_sum * 0.5)
 
-with c1: st.markdown(mini("Total Demand", f"{total} kWh", "24h Forecast"), unsafe_allow_html=True)
-with c2: st.markdown(mini("Avoided CO2", f"{saved_kg} kg", "Via Solar"), unsafe_allow_html=True)
-with c3: st.markdown(mini("Solar Input", f"{solar_sum} kWh", w_select), unsafe_allow_html=True)
-with c4: st.markdown(mini("Active Threads", f"{int(user_mult*120)}", "AI Scaled"), unsafe_allow_html=True)
-# Cost increases if solar is low
-est_cost = int((total - solar_sum) * 0.15) 
-with c5: st.markdown(mini("Est. Cost", f"${est_cost}", "Grid Import"), unsafe_allow_html=True)
-with c6: st.markdown(mini("Grid Relief", f"{int(solar_sum/total*100)}%", "Self-Sufficiency"), unsafe_allow_html=True)
+with c1: st.markdown(mini("Total Demand",   f"{total} kWh",       "24h Forecast"),                    unsafe_allow_html=True)
+with c2: st.markdown(mini("Avoided CO2",    f"{saved_kg} kg",     "Solar + Wind"),                    unsafe_allow_html=True)
+with c3: st.markdown(mini("Solar Input",    f"{solar_sum} kWh",   w_select),                          unsafe_allow_html=True)
+with c4: st.markdown(mini("Wind Input",     f"{wind_sum} kWh",    w_select),                          unsafe_allow_html=True)
+# Cost based on grid import only (total minus what renewables covered)
+grid_import = max(0, total - renewable_sum)
+est_cost = int(grid_import * 0.15)
+with c5: st.markdown(mini("Est. Cost",      f"${est_cost}",       "Grid Import"),                     unsafe_allow_html=True)
+with c6: st.markdown(mini("Grid Relief",    f"{int(min(renewable_sum, total)/total*100)}%", "Self-Sufficiency"), unsafe_allow_html=True)
 
 # --- ROW 2: LIVE LOAD + BATTERY (Split 2 cols) ---
 r2_1, r2_2 = st.columns([1, 2]) 
@@ -230,8 +295,9 @@ with r2_2:
         fig_l = go.Figure()
         fig_l.add_trace(go.Scatter(x=df['Hour'], y=df['Total'], fill='tozeroy', line=dict(color='#5E63D8', width=2), name='Demand'))
         fig_l.add_trace(go.Scatter(x=df['Hour'], y=df['Solar'], line=dict(color='#F59E0B', width=2, dash='dot'), name=f'Solar ({w_select})'))
-        
-        y_max = max(df['Total'].max(), df['Solar'].max()) * 1.25
+        fig_l.add_trace(go.Scatter(x=df['Hour'], y=df['Wind'],  line=dict(color='#06B6D4', width=2, dash='dash'), name=f'Wind ({w_select})'))
+
+        y_max = max(df['Total'].max(), df['Solar'].max(), df['Wind'].max()) * 1.25
         fig_l.update_layout(height=180, margin=dict(l=0,r=0,t=0,b=0), template="plotly_white", 
                             legend=dict(orientation="h", y=1.1),
                             yaxis=dict(range=[0, y_max]))
@@ -286,6 +352,10 @@ with r2_2:
             <div style="margin-bottom:6px;">
                 <div style="display:flex; justify-content:space-between;"><span>☀️ <strong>Solar Input</strong></span> <span>{solar_in}%</span></div>
                 {mini_bar(solar_in, 100, "#F59E0B")}
+            </div>
+            <div style="margin-bottom:6px;">
+                <div style="display:flex; justify-content:space-between;"><span>💨 <strong>Wind Input</strong></span> <span>{int(wind_fraction_pct)}%</span></div>
+                {mini_bar(wind_fraction_pct, 100, "#06B6D4")}
             </div>
             <div style="margin-bottom:6px;">
                 <div style="display:flex; justify-content:space-between;"><span>❤️ <strong>Health</strong></span> <span>{health_pct}%</span></div>
@@ -473,151 +543,299 @@ import random
 
 
 
-# --- ROW 6: HISTORICAL IMPACT AUDIT (Auto-Vanish & Animation) ---
-# We use an ID here so our Javascript can identify the 'Safe Zone'
+# --- ROW 6: MONTHLY ECO-AUDIT (Redesigned with Solar + Wind) ---
 st.markdown('<div id="audit-trigger-area">', unsafe_allow_html=True)
-st.markdown('<div class="dashboard-card" style="margin-top:20px; text-align:center;">', unsafe_allow_html=True)
-st.markdown('<div class="metric-title">📅 Monthly Eco-Audit</div>', unsafe_allow_html=True)
+st.markdown("""
+<div class="dashboard-card" style="margin-top:20px; border-left:4px solid #10B981;">
+    <div class="metric-title" style="color:#10B981; font-size:1rem; margin-bottom:12px;">
+        📅 Monthly Eco-Audit — Solar & Wind Breakdown
+    </div>
+</div>
+""", unsafe_allow_html=True)
+
+st.markdown('<div class="dashboard-card" style="margin-top:0px;">', unsafe_allow_html=True)
 
 if 'audit_active' not in st.session_state:
     st.session_state['audit_active'] = False
 if 'last_date' not in st.session_state:
     st.session_state['last_date'] = datetime.now().date()
 
-# 🧪 Hidden Reset Bridge
-# This button is clicked by our JS script when you click outside the card
 if st.button("RESET", key="btn_reset_audit", help="Hidden master reset"):
     st.session_state['audit_active'] = False
-    st.session_state['last_date'] = datetime.now().date() # Reset date too
+    st.session_state['last_date'] = datetime.now().date()
     st.rerun()
 
-# 1. Centered Date Picker
-c_a1, c_a2, c_a3 = st.columns([1, 1.5, 1])
-with c_a2:
-    st.caption("Select Date to Reveal Analysis")
+# Date picker row with instruction
+col_dp1, col_dp2, col_dp3 = st.columns([1, 1.5, 1])
+with col_dp2:
+    st.caption("📆 Pick a date to run the audit")
     audit_picker = st.date_input("Audit Date", datetime.now(), label_visibility="collapsed", key="audit_picker_trigger")
 
-# 2. Logic: Auto-Reveal on Change
 if audit_picker != st.session_state['last_date']:
     st.session_state['audit_active'] = True
     st.session_state['last_date'] = audit_picker
     st.rerun()
 
-# 3. Animated Analysis Reveal
 if st.session_state['audit_active']:
     st.markdown("""
     <style>
     @keyframes slideInUp {
-        0% { opacity: 0; transform: translateY(30px); }
+        0% { opacity: 0; transform: translateY(20px); }
         100% { opacity: 1; transform: translateY(0); }
     }
-    .analysis-reveal {
-        animation: slideInUp 0.6s ease-out forwards;
-        margin-top: 20px;
-        padding-top: 20px;
-        border-top: 1px dashed #E2E8F0;
-    }
-    /* Hide the master reset button visually */
-    div[data-testid="stButton"] button[key="btn_reset_audit"] {
-        display: none !important;
-    }
+    .audit-reveal { animation: slideInUp 0.5s ease-out forwards; }
     </style>
     """, unsafe_allow_html=True)
-    
-    st.markdown('<div class="analysis-reveal">', unsafe_allow_html=True)
-    
-    # Chart Logic
-    hours_list = [f"{h:02d}:00" for h in range(24)]
-    
-    # Try to load real data
+
+    st.markdown('<div class="audit-reveal">', unsafe_allow_html=True)
+    st.markdown("---")
+
+    hours_arr  = np.arange(24)
+    hours_list = [f"{h:02d}:00" for h in hours_arr]
+
+    # ── Build per-hour arrays for solar (kW), wind (kW), demand (kW) ──────────
     weather_df = load_historical_weather()
     found_data = False
-    mix_data = []
-    desc_text = ""
 
     if weather_df is not None:
-        mask = weather_df['time'].dt.date == audit_picker
-        day_data = weather_df[mask]
-        
+        day_data = weather_df[weather_df['time'].dt.date == audit_picker]
         if len(day_data) >= 24:
             found_data = True
-            # Use real solar radiation to simulate energy mix
-            # Map 0-1000 W/m2 to 0-100 scale (with a base grid mix of 20%)
-            solar_vals = day_data['solar_radiation_w_m2'].values[:24]
-            mix_data = np.clip(20 + (solar_vals / 900 * 80), 0, 100).astype(int)
-            
-            avg_sol = solar_vals.mean()
-            if avg_sol > 200:
-                desc_text = f"☀️ **Real Historical Data:** High Solar Output detected ({int(avg_sol)} W/m² avg)."
-            elif avg_sol > 50:
-                 desc_text = f"☁️ **Real Historical Data:** Variable Cloud Cover ({int(avg_sol)} W/m² avg)."
-            else:
-                 desc_text = f"🌧️ **Real Historical Data:** Low Solar Generation ({int(avg_sol)} W/m² avg)."
-            
-            # Clean text without HTML
-            desc_text += "\n\nHistorical weather data sourced from **Open-Meteo** API."
+            rad   = day_data['solar_radiation_w_m2'].values[:24]   # W/m²
+            wspd  = day_data['wind_speed_kmh'].values[:24]          # km/h
+
+            # Solar kW: radiation scales with the configured solar_cap
+            # 1000 W/m² is roughly full capacity → scale linearly
+            solar_kw = np.clip((rad / 1000.0) * solar_cap, 0, solar_cap)
+
+            # Wind kW: simplified turbine curve
+            # Cut-in ~10 km/h, rated ~50 km/h, cubic-ish relationship
+            wind_frac = np.clip((wspd - 10.0) / (50.0 - 10.0), 0.0, 1.0) ** 1.5
+            wind_kw   = wind_frac * wind_cap
 
     if not found_data:
+        # Deterministic simulation seeded by date
         random.seed(int(audit_picker.strftime("%Y%m%d")))
         day_type = random.choice(["Sunny", "Rainy", "Cloudy"])
-        
-        if day_type == "Sunny":
-            mix_data = [20, 20, 20, 30, 50, 75, 95, 100, 100, 95, 80, 60, 40, 30, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20]
-            desc_text = "✨ **Solar Peak:** 100% Green penetration achieved during daylight hours."
-        elif day_type == "Rainy":
-            mix_data = [random.randint(5, 15) for _ in range(24)]
-            desc_text = "🌧️ **Grid Strain:** High reliance on non-renewable sources."
-        else:
-            mix_data = [random.randint(30, 70) for _ in range(24)]
-            desc_text = "☁️ **Variable Load:** AI balanced mixed energy inputs."
-        
-        desc_text += "\n\n*(Simulated Data)*"
 
-    # --- Header Layout ---
-    # Logo moves to top right
-    c_head_1, c_head_2 = st.columns([0.85, 0.15])
-    with c_head_1:
-         st.markdown(f"### 🕒 Hourly Energy Mix: {audit_picker.strftime('%B %d, %Y')}")
-         st.caption("Live Audit Stream. Click anywhere outside this card to reset.")
-    
-    if found_data:
-        with c_head_2:
-            # use a relative path inside the repository so it works on any machine
-            import os
-            base = os.path.dirname(__file__)
-            # image_reference lives inside project_proposals, not the parent directory
-            logo_path = os.path.join(base, "image_reference", "OIP.jpeg")
-            logo_path = os.path.normpath(logo_path)
-            if os.path.exists(logo_path):
-                st.image(logo_path, width=50)
-            else:
-                # fallback: small placeholder (transparent pixel) to avoid crash
-                st.image("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR4nGNgYAQAAAEAAelq7NEAAAAASUVORK5CYII=", width=50)
-                st.warning(f"Logo not found at {logo_path}")
+        cloud_cover = {"Sunny": 0.05, "Cloudy": 0.5, "Rainy": 0.85}[day_type]
+        solar_kw = solar_cap * np.exp(-0.15 * (hours_arr - 12.0) ** 2) * (1 - cloud_cover)
+        solar_kw = np.maximum(solar_kw, 0)
 
-    # --- Chart ---
-    fig_deep = go.Figure(data=go.Heatmap(
-        z=np.array(mix_data).reshape(1, 24),
-        x=hours_list, y=['Mix'],
-        colorscale='RdYlGn', zmin=0, zmax=100,
-        xgap=2, hovertemplate='Hour: %{x}<br>Efficiency: %{z}%<extra></extra>'
+        wind_spd_factor = {"Sunny": 0.25, "Cloudy": 0.55, "Rainy": 0.80}[day_type]
+        wind_kw = wind_cap * wind_spd_factor * (0.5 + 0.2 * np.sin(hours_arr / 4.0))
+        wind_kw = np.maximum(wind_kw, 0)
+
+    # Demand curve: business-hours shaped sine + base load
+    demand_kw = 300 + (user_mult * 40) * np.clip(np.sin((hours_arr - 2) / 4.0), 0, 1)
+    renewable_kw  = solar_kw + wind_kw
+    grid_kw       = np.maximum(demand_kw - renewable_kw, 0)
+    curtailed_kw  = np.maximum(renewable_kw - demand_kw, 0)  # surplus not used
+
+    # ── KPI summary values ────────────────────────────────────────────────────
+    total_demand    = demand_kw.sum()
+    total_solar     = solar_kw.sum()
+    total_wind      = wind_kw.sum()
+    total_renewable = min(total_solar + total_wind, total_demand)
+    total_grid      = grid_kw.sum()
+    renewable_pct   = int(min(total_renewable / max(1, total_demand) * 100, 100))
+    co2_avoided_kg  = int(total_renewable * 0.5)   # 0.5 kg CO2/kWh displaced
+    grid_import_kwh = int(total_grid)
+    # "Clean hour" = renewable covers ≥ 60 % of demand that hour
+    clean_hours     = int(np.sum((renewable_kw / np.maximum(demand_kw, 1)) >= 0.6))
+
+    # ── ROW A: KPI Cards ──────────────────────────────────────────────────────
+    data_badge = "🟢 Real Data" if found_data else "🔵 Simulated"
+    st.markdown(f"""
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
+        <div style="font-size:1.05rem; font-weight:700; color:#1E293B;">
+            🕒 {audit_picker.strftime('%B %d, %Y')}
+        </div>
+        <div style="font-size:0.72rem; font-weight:600; color:#64748B;
+                    background:#F1F5F9; padding:3px 10px; border-radius:12px;">
+            {data_badge}
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+
+    k1, k2, k3, k4 = st.columns(4)
+    def kpi(label, value, sub, color):
+        return f"""<div style="background:#F8FAFC; border-radius:10px; padding:12px 10px;
+                               border-top:3px solid {color}; text-align:center;">
+                     <div style="font-size:1.35rem; font-weight:800; color:{color};">{value}</div>
+                     <div style="font-size:0.7rem; font-weight:600; color:#1E293B; margin:2px 0;">{label}</div>
+                     <div style="font-size:0.62rem; color:#94A3B8;">{sub}</div>
+                   </div>"""
+    with k1: st.markdown(kpi("Renewable Coverage", f"{renewable_pct}%",   "Solar + Wind vs Demand", "#10B981"), unsafe_allow_html=True)
+    with k2: st.markdown(kpi("CO₂ Avoided",        f"{co2_avoided_kg} kg","vs Full-Grid Equivalent", "#5E63D8"), unsafe_allow_html=True)
+    with k3: st.markdown(kpi("Grid Import",         f"{grid_import_kwh} kWh","Fossil supplement",    "#F59E0B"), unsafe_allow_html=True)
+    with k4: st.markdown(kpi("Clean Hours",         f"{clean_hours}/24",  "≥60% renewable coverage", "#06B6D4"), unsafe_allow_html=True)
+
+    st.markdown("<br>", unsafe_allow_html=True)
+
+    # ── ROW B: Main Stacked Area Chart ────────────────────────────────────────
+    st.markdown('<div style="font-size:0.8rem; font-weight:600; color:#475569; margin-bottom:6px;">⚡ 24-Hour Generation vs Demand</div>', unsafe_allow_html=True)
+
+    fig_main = go.Figure()
+    # Grid area (bottom of stack)
+    fig_main.add_trace(go.Bar(
+        x=hours_list, y=grid_kw,
+        name="Grid (Fossil)", marker_color="#CBD5E1",
+        hovertemplate='%{x}<br>Grid: %{y:.0f} kW<extra></extra>'
     ))
-    fig_deep.update_layout(height=150, margin=dict(l=0,r=0,t=0,b=0), template="plotly_white", yaxis=dict(visible=False))
-    st.plotly_chart(fig_deep, use_container_width=True)
-    
-    # --- Description (Single Column for proper alignment) ---
-    st.info(desc_text)
-    
-    st.markdown('</div>', unsafe_allow_html=True)
+    # Wind area (middle)
+    fig_main.add_trace(go.Bar(
+        x=hours_list, y=np.minimum(wind_kw, demand_kw - np.maximum(demand_kw - wind_kw - solar_kw, 0) - grid_kw + wind_kw),
+        name="Wind", marker_color="#06B6D4",
+        hovertemplate='%{x}<br>Wind: %{y:.0f} kW<extra></extra>'
+    ))
+    # Solar area (top)
+    fig_main.add_trace(go.Bar(
+        x=hours_list, y=np.minimum(solar_kw, demand_kw),
+        name="Solar", marker_color="#F59E0B",
+        hovertemplate='%{x}<br>Solar: %{y:.0f} kW<extra></extra>'
+    ))
+    # Demand line overlay
+    fig_main.add_trace(go.Scatter(
+        x=hours_list, y=demand_kw,
+        name="Demand", mode='lines',
+        line=dict(color='#1E293B', width=2.5, dash='dot'),
+        hovertemplate='%{x}<br>Demand: %{y:.0f} kW<extra></extra>'
+    ))
+    fig_main.update_layout(
+        barmode='stack', height=230,
+        margin=dict(l=0, r=0, t=10, b=0),
+        template="plotly_white",
+        legend=dict(orientation="h", y=1.12, x=0),
+        yaxis=dict(title="kW", gridcolor="#F1F5F9"),
+        xaxis=dict(tickangle=-45, tickfont=dict(size=10))
+    )
+    st.plotly_chart(fig_main, use_container_width=True)
+
+    # ── ROW C: Donut + AI Decision Timeline ───────────────────────────────────
+    col_donut, col_timeline = st.columns([1, 2])
+
+    with col_donut:
+        st.markdown('<div style="font-size:0.8rem; font-weight:600; color:#475569; margin-bottom:6px;">🍩 Daily Energy Mix</div>', unsafe_allow_html=True)
+        solar_used = float(np.minimum(solar_kw, demand_kw).sum())
+        wind_used  = float(np.minimum(wind_kw,  np.maximum(demand_kw - solar_kw, 0)).sum())
+        grid_used_total = float(total_grid)
+        fig_donut = go.Figure(go.Pie(
+            labels=["Solar", "Wind", "Grid"],
+            values=[solar_used, wind_used, grid_used_total],
+            hole=0.55,
+            marker=dict(colors=["#F59E0B", "#06B6D4", "#CBD5E1"]),
+            textinfo='percent',
+            hovertemplate='%{label}: %{value:.0f} kWh (%{percent})<extra></extra>'
+        ))
+        fig_donut.update_layout(
+            height=220, margin=dict(l=0, r=0, t=10, b=0),
+            showlegend=True,
+            legend=dict(orientation="h", y=-0.1, x=0.1, font=dict(size=10)),
+            annotations=[dict(text=f"<b>{renewable_pct}%</b><br>clean", x=0.5, y=0.5,
+                              font=dict(size=13, color="#10B981"), showarrow=False)]
+        )
+        st.plotly_chart(fig_donut, use_container_width=True)
+
+    with col_timeline:
+        st.markdown('<div style="font-size:0.8rem; font-weight:600; color:#475569; margin-bottom:6px;">🤖 AI Decision Timeline (per hour)</div>', unsafe_allow_html=True)
+
+        # Derive per-hour AI action using the same guardrail logic
+        audit_actions = []
+        audit_colors  = []
+        audit_labels  = []
+        total_cap = max(1, solar_cap + wind_cap)
+        for h in range(24):
+            s_frac = (solar_kw[h] + wind_kw[h]) / total_cap
+            carbon_h = 400 + 100 * np.exp(-0.5 * ((h - 9) / 1.5) ** 2) + \
+                             150 * np.exp(-0.5 * ((h - 19) / 2.0) ** 2)
+            q = user_mult * 10  # queue depth from current traffic slider
+
+            if carbon_h > 500 and s_frac < 0.15:
+                act, col, lbl = 2, "#EF4444", "Defer"
+            elif q > 400 and s_frac > 0.15:
+                act, col, lbl = 0, "#5E63D8", "Boost"
+            elif s_frac > 0.55:
+                act, col, lbl = 0, "#5E63D8", "Boost"
+            elif s_frac > 0.25 and carbon_h < 450:
+                act, col, lbl = 1, "#10B981", "Eco"
+            else:
+                act, col, lbl = 2, "#EF4444", "Defer"
+
+            audit_actions.append(act)
+            audit_colors.append(col)
+            audit_labels.append(lbl)
+
+        fig_timeline = go.Figure()
+        fig_timeline.add_trace(go.Bar(
+            x=hours_list,
+            y=[1] * 24,
+            marker_color=audit_colors,
+            text=audit_labels,
+            textposition='inside',
+            textfont=dict(color='white', size=9),
+            hovertemplate='%{x}<br>Decision: %{text}<extra></extra>',
+            showlegend=False
+        ))
+        # Legend annotations
+        for label, color in [("🚀 Boost", "#5E63D8"), ("🌱 Eco", "#10B981"), ("🛑 Defer", "#EF4444")]:
+            fig_timeline.add_trace(go.Bar(x=[None], y=[None], name=label, marker_color=color))
+        fig_timeline.update_layout(
+            height=220, margin=dict(l=0, r=0, t=10, b=0),
+            template="plotly_white",
+            barmode='stack',
+            legend=dict(orientation="h", y=1.15, x=0, font=dict(size=10)),
+            yaxis=dict(visible=False),
+            xaxis=dict(tickangle=-45, tickfont=dict(size=9))
+        )
+        st.plotly_chart(fig_timeline, use_container_width=True)
+
+    # ── Data source note ──────────────────────────────────────────────────────
+    if found_data:
+        st.caption("📡 Real historical data sourced from **Open-Meteo** API · Northern Virginia region")
+    else:
+        st.caption(f"🔵 No real data found for this date — showing deterministic simulation (seeded by date)")
+
+    st.markdown('</div>', unsafe_allow_html=True)  # audit-reveal
 
 st.markdown('</div></div>', unsafe_allow_html=True)
 
-# 🧪 JAVASCRIPT CLICK-OUTSIDE BRIDGE
-# This script detects clicks. If click is NOT on our audit card, it triggers the hidden reset.
+# JAVASCRIPT: click-outside reset + calendar weekday header colour fix
 st.components.v1.html(
     """
     <script>
     const doc = window.parent.document;
+
+    // --- 1. Inject a <style> tag into the parent <head> ---
+    // This is the only approach guaranteed to reach the calendar popup,
+    // because it becomes part of the page's own stylesheet cascade.
+    (function() {
+        const styleId = 'eco-calendar-fix';
+        if (doc.getElementById(styleId)) return; // already injected
+        const style = doc.createElement('style');
+        style.id = styleId;
+        style.textContent = `
+            /* Weekday header row: Sun Mon Tue Wed Thu Fri Sat */
+            [role="columnheader"],
+            [role="columnheader"] abbr,
+            [role="columnheader"] span,
+            [role="columnheader"] div {
+                color: #ffffff !important;
+                text-decoration: none !important;
+                font-weight: 600 !important;
+            }
+            /* Month / year label and nav arrow buttons */
+            [data-baseweb="calendar"] [role="heading"],
+            [data-baseweb="calendar"] button svg,
+            [data-baseweb="calendar"] button {
+                color: #ffffff !important;
+                fill:  #ffffff !important;
+            }
+        `;
+        doc.head.appendChild(style);
+    })();
+
+    // --- 2. Click-outside reset for audit card ---
     doc.addEventListener('click', function(e) {
         const area = doc.getElementById('audit-trigger-area');
         const resetBtn = doc.querySelector('button[key="btn_reset_audit"]');

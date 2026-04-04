@@ -1,5 +1,3 @@
-import gymnasium as gym
-from gymnasium import spaces
 import numpy as np
 from stable_baselines3 import PPO
 import os
@@ -13,114 +11,74 @@ class AIInferenceEngine:
             except Exception as e:
                 pass
 
-    def infer_action(self, hour, solar, wind, carbon, queue, battery):
+    def infer_action(self, hour, solar, wind, carbon, queue, battery,
+                     solar_capacity=850, wind_capacity=200):
         """
-        Runs the logic through the actual Trained PPO Model with Safety Guardrails.
-        Observation: [Hour, Solar, Wind, Carbon, Queue, Battery, 0]
+        Runs inference through the trained PPO model with calibrated safety guardrails.
+
+        Guardrails use combined renewable fraction (solar + wind) / (solar_cap + wind_cap)
+        so they scale correctly regardless of farm sizes set in the UI.
+
+        Args:
+            hour          : current hour of day (0-23)
+            solar         : current solar generation (kW)
+            wind          : current wind generation (kW)
+            carbon        : grid carbon intensity (gCO2/kWh)
+            queue         : pending task count
+            battery       : battery charge level (kWh or %)
+            solar_capacity: rated solar farm capacity (kW)
+            wind_capacity : rated wind farm capacity (kW)
         """
-        # 1. AI Model Prediction
-        action = 0 
+        energy_per_task = 0.1  # kWh per task (matches environment.py)
+
+        # --- 1. PPO Model Prediction ---
+        action = 0
         if self.model:
             obs = np.array([hour, solar, wind, carbon, queue, battery, 0], dtype=np.float32)
             try:
                 action, _ = self.model.predict(obs, deterministic=True)
                 action = int(action)
-            except:
+            except Exception:
                 action = 0
-        
-        # 2. Safety Guardrails
-        if carbon > 500 and solar < 50:
-            action = 2 
-        elif queue > 450 and (solar > 20 or battery > 40):
-            action = 0 
-        elif solar > 350:
-            action = 0
+
+        # --- 2. Calibrated Safety Guardrails ---
+        # Use combined renewable fraction so wind supplements solar in decisions.
+
+        total_capacity = max(1.0, solar_capacity + wind_capacity)
+        combined_renewable = solar + wind
+        combined_fraction = combined_renewable / total_capacity   # 0.0 – 1.0
+
+        # Total green supply (renewables + battery storage)
+        green_available = combined_renewable + battery
+
+        # kWh needed to clear the current task queue
+        estimated_demand = max(1.0, queue * energy_per_task)
+
+        # Can green supply cover current demand? >= 1.0 means fully covered
+        green_coverage = green_available / estimated_demand
+
+        # Rule 1 — Dirty grid + very low combined renewables → defer non-urgent work
+        if carbon > 500 and combined_fraction < 0.15:
+            action = 2  # HOLD
+
+        # Rule 2 — Critical backlog + meaningful renewables available + green covers half → clear it
+        elif queue > 400 and combined_fraction > 0.15 and green_coverage >= 0.5:
+            action = 0  # PROCESS_ALL
+
+        # Rule 3 — Combined renewables above 55 % of total capacity → abundant clean energy, boost
+        elif combined_fraction > 0.55:
+            action = 0  # PROCESS_ALL
+
+        # Rule 4 — Moderate combined renewables (25-55 %) + reasonably clean grid → prefer eco mode
+        # Only overrides HOLD; keeps PROCESS_ALL if the model chose it
+        elif combined_fraction > 0.25 and carbon < 450:
+            if action == 2:
+                action = 1  # ECO (Green Only)
 
         action_map = {
             0: "🚀 Boost (Process All)",
             1: "🌱 Eco (Green Only)",
             2: "🛑 Defer (Hold Load)"
         }
-        
-        return action_map.get(action, "Unknown"), action
-        
-        if action == 0: # PROCESS_ALL
-            # Try to clear queue
-            possible_tasks = int(self.queue)
-            energy_needed = possible_tasks * energy_per_task
-            
-            tasks_processed = possible_tasks
-            power_consumed = energy_needed
-            
-        elif action == 1: # PROCESS_GREEN
-            # Calculate max tasks we can run with green energy
-            possible_by_energy = int(green_energy_available / energy_per_task)
-            possible_tasks = min(self.queue, possible_by_energy)
-            
-            tasks_processed = possible_tasks
-            power_consumed = possible_tasks * energy_per_task
-            
-        elif action == 2: # HOLD
-            tasks_processed = 0
-            power_consumed = 0.5 # Base load power (idle servers)
-        
-        # 3. Calculate Energy Mix (Green vs Grid)
-        # First use Green, then Grid
-        green_used = min(green_energy_available, power_consumed)
-        grid_used = max(0, power_consumed - green_energy_available)
-        
-        # Update Battery (Simple logic: if surplus green, charge it; if used green, drain it)
-        # Note: In PROCESS_ALL, we might use battery then grid.
-        # In PROCESS_GREEN, we shouldn't touch grid ideally, but we count battery as green.
-        
-        if power_consumed < (solar + wind):
-            # Surplus -> Charge Battery
-            surplus = (solar + wind) - power_consumed
-            self.battery = min(self.battery_capacity, self.battery + surplus)
-        else:
-            # Deficit -> Drain Battery first
-            # We already accounted for this in green_used logic roughly, but let's update state
-            needed_from_storage = power_consumed - (solar + wind)
-            actual_drain = min(self.battery, max(0, needed_from_storage))
-            self.battery -= actual_drain
-            
-            # Recalculate grid used more precisely
-            total_green_supply = (solar + wind) + actual_drain
-            grid_used = max(0, power_consumed - total_green_supply)
-            green_used = total_green_supply # This is effectively what we used
 
-        # Update Queue
-        self.queue -= tasks_processed
-        
-        # 4. Calculate Reward
-        # Minimize Carbon, Maximize Throughput, Minimize Drop/Latency
-        
-        carbon_footprint = grid_used * carbon_intensity # gCO2
-        
-        reward = 0
-        reward += (tasks_processed * 1.0) # Good to do work
-        reward -= (carbon_footprint * 0.05) # Bad to emit carbon
-        reward -= (dropped_tasks * 2.0) # Very bad to drop tasks
-        reward -= (self.queue * 0.1) # Penalty for longer queue (latency)
-        
-        # 5. Move Time
-        self.current_hour += 1
-        done = False
-        if self.current_hour >= 24:
-            # End of Episode (Day)
-            done = True
-        
-        # Info for dashboard
-        info = {
-            "hour": self.current_hour - 1,
-            "solar": solar,
-            "wind": wind,
-            "grid_used": grid_used,
-            "carbon_emitted": carbon_footprint,
-            "tasks_processed": tasks_processed,
-            "queue_length": self.queue,
-            "battery": self.battery
-        }
-        self.history.append(info)
-        
-        return self._get_obs(), reward, done, False, info
+        return action_map.get(action, "Unknown"), action

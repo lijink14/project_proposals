@@ -26,7 +26,7 @@ Resources:
   WeatherFunction:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: s3://cloud-scheduler-10/app.zip
+      CodeUri: s3://project-proposals-472499667420/app.zip
       Handler: app.lambda_handler
       Description: Returns weather predictions (Simulated or Real)
       Events:
