@@ -39,8 +39,13 @@ html, body, [class*="css"] {
 [data-testid="stSidebar"] label,
 [data-testid="stSidebar"] .stMarkdown p,
 [data-testid="stSidebar"] .stCaption,
-[data-testid="stSidebar"] div[data-testid="stMarkdownContainer"] p {
-    color: #E2E8F0 !important;
+[data-testid="stSidebar"] div[data-testid="stMarkdownContainer"] p,
+[data-testid="stSidebar"] div[data-testid="stMarkdownContainer"] h1,
+[data-testid="stSidebar"] div[data-testid="stMarkdownContainer"] h2,
+[data-testid="stSidebar"] div[data-testid="stMarkdownContainer"] h3,
+[data-testid="stSidebar"] div[data-testid="stMarkdownContainer"] span,
+[data-testid="stSidebar"] div[data-testid="stMarkdownContainer"] * {
+    color: #FFFFFF !important;
 }
 
 [data-testid="stSidebar"] div[data-testid="stSliderTickBar"] > div,
