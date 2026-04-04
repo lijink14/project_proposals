@@ -329,7 +329,7 @@ with r2_1:
     fig_p.update_traces(textposition='inside', textinfo='percent+label', textfont=dict(color='white'))
     fig_p.update_layout(height=180, margin=dict(l=0,r=0,t=0,b=0), showlegend=False,
                         paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)',
-                        font=dict(color='#4B5563'))
+                        font=dict(color='#374151'))
     fig_p.add_annotation(text=f"{int(sums.sum())}", font_size=14, showarrow=False, font_color='#1F2937')
     st.plotly_chart(fig_p, use_container_width=True)
     st.markdown('</div>', unsafe_allow_html=True)
@@ -349,9 +349,9 @@ with r2_2:
         y_max = max(df['Total'].max(), df['Solar'].max(), df['Wind'].max()) * 1.25
         fig_l.update_layout(height=180, margin=dict(l=0,r=0,t=0,b=0),
                             paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(240,245,250,0.7)',
-                            legend=dict(orientation="h", y=1.1, font=dict(color='#4B5563')),
-                            yaxis=dict(range=[0, y_max], gridcolor='rgba(0,0,0,0.06)', color='#64748B'),
-                            xaxis=dict(gridcolor='rgba(0,0,0,0.06)', color='#64748B'))
+                            legend=dict(orientation="h", y=1.1, font=dict(color='#374151')),
+                            yaxis=dict(range=[0, y_max], gridcolor='rgba(0,0,0,0.12)', color='#4B5563'),
+                            xaxis=dict(gridcolor='rgba(0,0,0,0.12)', color='#4B5563'))
         st.plotly_chart(fig_l, use_container_width=True)
 
         
@@ -478,14 +478,14 @@ with ci_2:
     
     # Dual Axis to show Productivity separately from Carbon
     fig_y.add_trace(go.Scatter(x=months, y=impact_curve, mode='lines', name='Carbon Saved (kg)', line=dict(color=l_col, width=4)))
-    fig_y.add_trace(go.Scatter(x=months, y=perf_curve, mode='lines+markers', name='System Productivity', yaxis='y2', line=dict(color='#64748B', width=2, dash='dot')))
+    fig_y.add_trace(go.Scatter(x=months, y=perf_curve, mode='lines+markers', name='System Productivity', yaxis='y2', line=dict(color='#374151', width=2, dash='dot')))
     
     fig_y.update_layout(
-        height=250, margin=dict(l=0,r=0,t=10,b=0), paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(240,245,250,0.7)",
-        showlegend=True, legend=dict(orientation="h", y=1.1, font=dict(color='#4B5563')),
-        font=dict(color='#4B5563'),
-        yaxis=dict(title="Carbon Impact", gridcolor='rgba(0,0,0,0.07)', color='#64748B'),
-        yaxis2=dict(title="Productivity Score", overlaying='y', side='right', range=[0, 110], color='#64748B')
+        height=250, margin=dict(l=0,r=0,t=10,b=0), paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(248,250,252,0.9)",
+        showlegend=True, legend=dict(orientation="h", y=1.1, font=dict(color='#374151')),
+        font=dict(color='#374151'),
+        yaxis=dict(title="Carbon Impact", gridcolor='rgba(0,0,0,0.12)', color='#4B5563'),
+        yaxis2=dict(title="Productivity Score", overlaying='y', side='right', range=[0, 110], color='#4B5563')
     )
     st.plotly_chart(fig_y, use_container_width=True)
 
@@ -511,9 +511,9 @@ with r3_1:
         else: v1, v2 = 2000*tech_scale, 1400*tech_scale
         
         fig_b = go.Figure()
-        fig_b.add_trace(go.Bar(y=['Co2'], x=[v1], orientation='h', name='Std', marker_color='#9CA3AF'))
+        fig_b.add_trace(go.Bar(y=['Co2'], x=[v1], orientation='h', name='Std', marker_color='#6B7280'))
         fig_b.add_trace(go.Bar(y=['Co2'], x=[v2], orientation='h', name='Eco', marker_color='#10B981'))
-        fig_b.update_layout(height=120, margin=dict(l=0,r=0,t=0,b=0), paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(240,245,250,0.7)", showlegend=False, font=dict(color='#4B5563'))
+        fig_b.update_layout(height=120, margin=dict(l=0,r=0,t=0,b=0), paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(248,250,252,0.9)", showlegend=False, font=dict(color='#374151'))
         st.plotly_chart(fig_b, use_container_width=True)
         st.caption(f"Net Savings: {int(v1-v2)} kgCO2")
     st.markdown('</div>', unsafe_allow_html=True)
@@ -561,19 +561,19 @@ with w2:
     fig_f = go.Figure()
     
     # 1. Theoretical Max (Dot)
-    fig_f.add_trace(go.Scatter(x=df['Hour'], y=850 * np.exp(-0.15 * (df['Hour'] - 12)**2), 
-                               name='Potential', line=dict(color='gray', width=1, dash='dot')))
+    fig_f.add_trace(go.Scatter(x=df['Hour'], y=850 * np.exp(-0.15 * (df['Hour'] - 12)**2),
+                               name='Potential', line=dict(color='#9CA3AF', width=1.5, dash='dot')))
     
     # 2. Actual Forecast (Solid Color, Fill)
     # Color changes with weather
-    color_map = {"Sunny": "#D97706", "Partly Cloudy": "#F59E0B", "Overcast": "#94A3B8", "Rainy": "#64748B"}
+    color_map = {"Sunny": "#D97706", "Partly Cloudy": "#F59E0B", "Overcast": "#6B7280", "Rainy": "#374151"}
     
     fig_f.add_trace(go.Scatter(x=df['Hour'], y=df['Solar'], 
                                name='Forecast', fill='tozeroy', 
                                line=dict(color=color_map[w_select], width=3)))
     
 
-    fig_f.update_layout(height=200, margin=dict(l=0,r=0,t=10,b=0), paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(240,245,250,0.7)", legend=dict(orientation="h", y=1.1, font=dict(color='#4B5563')), font=dict(color='#4B5563'), yaxis=dict(gridcolor='rgba(0,0,0,0.07)', color='#64748B'), xaxis=dict(gridcolor='rgba(0,0,0,0.06)', color='#64748B'))
+    fig_f.update_layout(height=200, margin=dict(l=0,r=0,t=10,b=0), paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(248,250,252,0.9)", legend=dict(orientation="h", y=1.1, font=dict(color='#374151')), font=dict(color='#374151'), yaxis=dict(gridcolor='rgba(0,0,0,0.12)', color='#4B5563'), xaxis=dict(gridcolor='rgba(0,0,0,0.12)', color='#4B5563'))
     st.plotly_chart(fig_f, use_container_width=True)
     st.markdown('</div>', unsafe_allow_html=True)
 
@@ -585,8 +585,8 @@ c_ai_1, c_ai_2 = st.columns([4, 1])
 with c_ai_1:
     st.markdown(f"""
     <div style="font-family:'Consolas','Courier New',monospace; font-size:0.83rem;
-                color:#4B5563; background:rgba(15,42,74,0.05); padding:12px 14px;
-                border-radius:8px; border:1px solid rgba(8,145,178,0.18);
+                color:#1F2937; background:#F1F5F9; padding:12px 14px;
+                border-radius:8px; border:1px solid #D1D5DB;
                 line-height:1.7;">
     {ai_decision}
     </div>
@@ -727,7 +727,7 @@ if st.session_state['audit_active']:
     badge_map = {
         "api":       ("<span style='color:#10B981;'>●</span> Live — Open-Meteo API",  "#ECFDF5", "#10B981"),
         "csv":       ("<span style='color:#5E63D8;'>●</span> Cached — Open-Meteo",   "#EEF2FF", "#5E63D8"),
-        "simulated": ("<span style='color:#94A3B8;'>●</span> Simulated",              "#F8FAFC", "#94A3B8"),
+        "simulated": ("<span style='color:#6B7280;'>●</span> Simulated",              "#F1F5F9", "#4B5563"),
     }
     badge_text, badge_bg, badge_col = badge_map[data_source]
 
@@ -777,7 +777,7 @@ if st.session_state['audit_active']:
     # Grid area (bottom of stack)
     fig_main.add_trace(go.Bar(
         x=hours_list, y=_grid_used,
-        name="Grid (Fossil)", marker_color="#64748B",
+        name="Grid (Fossil)", marker_color="#4B5563",
         hovertemplate='%{x}<br>Grid: %{y:.0f} kW<extra></extra>'
     ))
     # Wind area (middle)
@@ -802,11 +802,11 @@ if st.session_state['audit_active']:
     fig_main.update_layout(
         barmode='stack', height=230,
         margin=dict(l=0, r=0, t=10, b=0),
-        paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(240,245,250,0.7)",
-        legend=dict(orientation="h", y=1.12, x=0, font=dict(color='#4B5563')),
-        font=dict(color='#4B5563'),
-        yaxis=dict(title="kW", gridcolor="#CBD5E1", color='#64748B'),
-        xaxis=dict(tickangle=-45, tickfont=dict(size=10), color='#64748B')
+        paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(248,250,252,0.9)",
+        legend=dict(orientation="h", y=1.12, x=0, font=dict(color='#374151')),
+        font=dict(color='#374151'),
+        yaxis=dict(title="kW", gridcolor="#CBD5E1", color='#4B5563'),
+        xaxis=dict(tickangle=-45, tickfont=dict(size=10), color='#4B5563')
     )
     st.plotly_chart(fig_main, use_container_width=True)
 
@@ -822,7 +822,7 @@ if st.session_state['audit_active']:
             labels=["Solar", "Wind", "Grid"],
             values=[solar_used, wind_used, grid_used_total],
             hole=0.55,
-            marker=dict(colors=["#D97706", "#0284C7", "#94A3B8"]),
+            marker=dict(colors=["#D97706", "#0284C7", "#6B7280"]),
             textinfo='percent',
             hovertemplate='%{label}: %{value:.0f} kWh (%{percent})<extra></extra>'
         ))
@@ -831,7 +831,7 @@ if st.session_state['audit_active']:
             paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
             showlegend=True,
             legend=dict(orientation="h", y=-0.1, x=0.1, font=dict(size=10, color='#4B5563')),
-            font=dict(color='#4B5563'),
+            font=dict(color='#374151'),
             annotations=[dict(text=f"<b>{renewable_pct}%</b><br>clean", x=0.5, y=0.5,
                               font=dict(size=13, color="#059669"), showarrow=False)]
         )
@@ -882,12 +882,12 @@ if st.session_state['audit_active']:
             fig_timeline.add_trace(go.Bar(x=[None], y=[None], name=label, marker_color=color))
         fig_timeline.update_layout(
             height=220, margin=dict(l=0, r=0, t=10, b=0),
-            paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(240,245,250,0.7)",
+            paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(248,250,252,0.9)",
             barmode='stack',
             legend=dict(orientation="h", y=1.15, x=0, font=dict(size=10, color='#4B5563')),
-            font=dict(color='#4B5563'),
+            font=dict(color='#374151'),
             yaxis=dict(visible=False),
-            xaxis=dict(tickangle=-45, tickfont=dict(size=9), color='#64748B')
+            xaxis=dict(tickangle=-45, tickfont=dict(size=9), color='#4B5563')
         )
         st.plotly_chart(fig_timeline, use_container_width=True)
 
@@ -933,14 +933,14 @@ if st.session_state['audit_active']:
     else:
         st.markdown("""
         <div style="display:flex; align-items:center; gap:10px; margin-top:10px;
-                    padding:8px 14px; background:#F8FAFC; border-radius:8px;
-                    border:1px solid #E2E8F0;">
+                    padding:8px 14px; background:#F1F5F9; border-radius:8px;
+                    border:1px solid #CBD5E1;">
             <div style="font-size:1.4rem;">🔵</div>
             <div>
-                <div style="font-size:0.75rem; font-weight:700; color:#475569;">
+                <div style="font-size:0.75rem; font-weight:700; color:#374151;">
                     Simulated Data
                 </div>
-                <div style="font-size:0.65rem; color:#94A3B8;">
+                <div style="font-size:0.65rem; color:#4B5563;">
                     No real data available for this date (future date or outside archive range).
                     Showing physics-based deterministic simulation seeded by date.
                 </div>

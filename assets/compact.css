@@ -3,15 +3,14 @@
    Palette:
      App BG       #F4F6F9   (soft cool white)
      Card BG      #FFFFFF
-     Card Border  rgba(99,102,241,0.1)
-     Sidebar      #1E3A5F   (medium navy — readable, not harsh)
+     Sidebar      #1E3A5F   (medium navy)
      Primary      #059669   (emerald eco green)
      Solar        #D97706   (amber)
      Wind         #0284C7   (sky blue)
-     Grid         #6B7280   (warm slate)
-     Text-1       #1F2937   (soft charcoal — NOT pure black)
+     Grid         #4B5563   (dark slate)
+     Text-1       #1F2937   (soft charcoal)
      Text-2       #4B5563   (medium gray)
-     Text-3       #9CA3AF   (light gray)
+     Text-3       #6B7280   (light gray — only for captions)
    ============================================================ */
 
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
@@ -41,16 +40,16 @@ html, body, [class*="css"] {
 [data-testid="stSidebar"] .stMarkdown p,
 [data-testid="stSidebar"] .stCaption,
 [data-testid="stSidebar"] div[data-testid="stMarkdownContainer"] p {
-    color: #D1D5DB !important;
+    color: #E2E8F0 !important;
 }
 
 [data-testid="stSidebar"] div[data-testid="stSliderTickBar"] > div,
 [data-testid="stSidebar"] div[data-testid="stSliderValue"] {
-    color: #9CA3AF !important;
+    color: #CBD5E1 !important;
 }
 
 [data-testid="stSidebar"] div:not([data-baseweb="select"]):not([data-baseweb="input"]) {
-    color: #D1D5DB;
+    color: #E2E8F0;
 }
 
 /* Sidebar slider track */
@@ -61,24 +60,24 @@ html, body, [class*="css"] {
 /* Sidebar select box */
 [data-testid="stSidebar"] div[data-baseweb="select"] > div {
     background-color: #253F63 !important;
-    color: #D1D5DB !important;
-    border: 1px solid rgba(2,132,199,0.3) !important;
+    color: #E2E8F0 !important;
+    border: 1px solid rgba(2,132,199,0.35) !important;
     border-radius: 8px !important;
 }
 [data-testid="stSidebar"] div[data-baseweb="select"] * {
-    color: #D1D5DB !important;
+    color: #E2E8F0 !important;
 }
 
 /* Dropdown popup */
 div[role="listbox"] ul {
     background-color: #1E3A5F !important;
-    border: 1px solid rgba(2,132,199,0.25) !important;
+    border: 1px solid rgba(2,132,199,0.3) !important;
 }
 div[role="listbox"] li {
-    color: #D1D5DB !important;
+    color: #E2E8F0 !important;
 }
 div[role="listbox"] li:hover {
-    background-color: rgba(2,132,199,0.15) !important;
+    background-color: rgba(2,132,199,0.2) !important;
 }
 
 /* ── DASHBOARD CARDS ── */
@@ -86,8 +85,8 @@ div[role="listbox"] li:hover {
     background: #FFFFFF;
     border-radius: 14px;
     padding: 16px;
-    border: 1px solid rgba(2,132,199,0.1);
-    box-shadow: 0 1px 8px rgba(31,41,55,0.06),
+    border: 1px solid rgba(2,132,199,0.12);
+    box-shadow: 0 1px 8px rgba(31,41,55,0.07),
                 0 1px 2px rgba(31,41,55,0.04);
     margin-bottom: 15px;
     height: 100%;
@@ -96,7 +95,7 @@ div[role="listbox"] li:hover {
 /* ── METRICS ── */
 .metric-title {
     font-size: 0.68rem;
-    color: #6B7280;
+    color: #4B5563;
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.8px;
@@ -120,9 +119,9 @@ div[role="listbox"] li:hover {
 }
 
 .sub-neutral {
-    background: rgba(107,114,128,0.1);
-    color: #6B7280;
-    border: 1px solid rgba(107,114,128,0.18);
+    background: rgba(75,85,99,0.1);
+    color: #374151;
+    border: 1px solid rgba(75,85,99,0.25);
 }
 
 /* ── BUTTONS ── */
@@ -147,20 +146,20 @@ div[data-baseweb="input"] input,
 div[data-baseweb="textarea"] textarea {
     background: #F9FAFB !important;
     color: #1F2937 !important;
-    border: 1px solid rgba(2,132,199,0.2) !important;
+    border: 1px solid rgba(2,132,199,0.25) !important;
     border-radius: 8px !important;
 }
 div[data-baseweb="input"] input:focus {
     border-color: #059669 !important;
-    box-shadow: 0 0 0 2px rgba(5,150,105,0.12) !important;
+    box-shadow: 0 0 0 2px rgba(5,150,105,0.15) !important;
 }
 
 /* ── ALERTS / INFO BOXES ── */
 div[data-testid="stAlert"] {
-    background: rgba(5,150,105,0.05) !important;
-    border: 1px solid rgba(5,150,105,0.18) !important;
+    background: rgba(5,150,105,0.06) !important;
+    border: 1px solid rgba(5,150,105,0.22) !important;
     border-radius: 10px !important;
-    color: #374151 !important;
+    color: #1F2937 !important;
 }
 
 /* ── SPINNER ── */
@@ -172,46 +171,65 @@ div[data-testid="stSpinner"] p {
 div[data-baseweb="datepicker"] input {
     background: #F9FAFB !important;
     color: #1F2937 !important;
-    border: 1px solid rgba(2,132,199,0.2) !important;
+    border: 1px solid rgba(2,132,199,0.25) !important;
 }
 
 /* ── CALENDAR POPUP — full override ── */
 div[data-baseweb="calendar"] {
     background-color: #FFFFFF !important;
-    border: 1px solid #E5E7EB !important;
+    border: 1px solid #D1D5DB !important;
     border-radius: 12px !important;
-    box-shadow: 0 4px 24px rgba(31,41,55,0.12) !important;
+    box-shadow: 0 8px 32px rgba(31,41,55,0.15) !important;
 }
 
-/* Navigation header (month/year row) */
-div[data-baseweb="calendar"] div[data-baseweb="select"] > div,
-div[data-baseweb="calendar"] button {
+/* Month/year nav header */
+div[data-baseweb="calendar"] div[data-baseweb="select"] > div {
     background: transparent !important;
     color: #1F2937 !important;
+    border: none !important;
 }
 
-/* Weekday column headers (Sun Mon Tue …) */
+div[data-baseweb="calendar"] button {
+    color: #1F2937 !important;
+    background: transparent !important;
+}
+
+div[data-baseweb="calendar"] button:hover {
+    background: rgba(5,150,105,0.1) !important;
+    border-radius: 50% !important;
+}
+
+/* Weekday column headers */
 [role="columnheader"],
 [role="columnheader"] abbr,
 [role="columnheader"] span,
 [role="columnheader"] * {
     color: #374151 !important;
+    font-weight: 600 !important;
     text-decoration: none !important;
     background: transparent !important;
 }
 
 /* Day number cells */
+[role="gridcell"],
 [role="gridcell"] button,
 [role="gridcell"] div {
     color: #1F2937 !important;
 }
 
-/* Today highlight */
+[role="gridcell"] button:hover {
+    background: rgba(5,150,105,0.1) !important;
+    border-radius: 50% !important;
+    color: #059669 !important;
+}
+
+/* Today indicator */
 [aria-current="date"] button,
 [aria-current="date"] {
-    border-color: #059669 !important;
+    border: 2px solid #059669 !important;
     color: #059669 !important;
     font-weight: 700 !important;
+    border-radius: 50% !important;
 }
 
 /* Selected date */
@@ -222,7 +240,7 @@ div[data-baseweb="calendar"] button {
     border-radius: 50% !important;
 }
 
-/* Month/year nav arrows */
+/* Nav arrows */
 div[data-baseweb="calendar"] svg {
     fill: #4B5563 !important;
 }
@@ -241,12 +259,7 @@ div[data-testid="stCaptionContainer"] p,
 /* ── RADIO / CHECKBOX LABELS ── */
 [data-testid="stRadio"] label,
 [data-testid="stCheckbox"] label {
-    color: #374151 !important;
-}
-
-/* ── GENERAL LABELS AND TEXT ── */
-label, p, span, div {
-    color: inherit;
+    color: #1F2937 !important;
 }
 
 /* ── PLOTLY CHART CONTAINERS ── */
@@ -257,11 +270,11 @@ div[data-testid="stPlotlyChart"] {
 
 /* ── HORIZONTAL RULE ── */
 hr {
-    border-color: rgba(2,132,199,0.12) !important;
+    border-color: rgba(2,132,199,0.15) !important;
 }
 
 /* ── SCROLLBAR ── */
 ::-webkit-scrollbar { width: 6px; }
 ::-webkit-scrollbar-track { background: #F4F6F9; }
-::-webkit-scrollbar-thumb { background: rgba(2,132,199,0.25); border-radius: 3px; }
-::-webkit-scrollbar-thumb:hover { background: rgba(2,132,199,0.4); }
+::-webkit-scrollbar-thumb { background: rgba(2,132,199,0.3); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(2,132,199,0.5); }
