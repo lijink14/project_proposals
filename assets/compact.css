@@ -1,25 +1,38 @@
-/* --- COMPACT DASHBOARD THEME (High Contrast & Clean Headers) --- */
+/* ============================================================
+   ECOSYNC — DARK CARBON / ECO-TECH THEME
+   Palette:
+     App BG       #070B14   (deep space)
+     Card BG      #0D1526   (dark navy glass)
+     Card Border  rgba(0,212,170,0.12)
+     Primary      #00D4AA   (eco teal)
+     Solar        #FBBF24   (amber gold)
+     Wind         #38BDF8   (sky blue)
+     Grid         #F87171   (soft red)
+     Text-1       #F1F5F9
+     Text-2       #94A3B8
+     Text-3       #475569
+   ============================================================ */
 
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
 
+/* ── BASE ── */
 .stApp {
-    background-color: #EEF2F9 !important;
+    background-color: #070B14 !important;
+    background-image: radial-gradient(ellipse at 20% 20%, rgba(0,212,170,0.04) 0%, transparent 60%),
+                      radial-gradient(ellipse at 80% 80%, rgba(56,189,248,0.04) 0%, transparent 60%);
 }
 
-html,
-body,
-[class*="css"] {
+html, body, [class*="css"] {
     font-family: 'Inter', sans-serif;
-    color: #2D3748;
+    color: #E2E8F0;
 }
 
-/* SIDEBAR - Dark Blue Theme */
+/* ── SIDEBAR ── */
 [data-testid="stSidebar"] {
-    background-color: #545ABC !important;
+    background: linear-gradient(180deg, #080E1E 0%, #060A14 100%) !important;
+    border-right: 1px solid rgba(0, 212, 170, 0.15) !important;
 }
 
-/* Sidebar Text Color Strategy: Aggressive but Safe */
-/* 1. Force Headers & Standard Text to White */
 [data-testid="stSidebar"] h1,
 [data-testid="stSidebar"] h2,
 [data-testid="stSidebar"] h3,
@@ -27,94 +40,169 @@ body,
 [data-testid="stSidebar"] .stMarkdown p,
 [data-testid="stSidebar"] .stCaption,
 [data-testid="stSidebar"] div[data-testid="stMarkdownContainer"] p {
-    color: #FFFFFF !important;
+    color: #E2E8F0 !important;
 }
 
-/* 2. Fix Slider Ticks & Values (The invisible items) */
-[data-testid="stSidebar"] div[data-testid="stSliderTickBar"]>div,
+[data-testid="stSidebar"] div[data-testid="stSliderTickBar"] > div,
 [data-testid="stSidebar"] div[data-testid="stSliderValue"] {
-    color: #FFFFFF !important;
+    color: #94A3B8 !important;
 }
 
-/* 3. Catch-all for other text, excluding inputs */
 [data-testid="stSidebar"] div:not([data-baseweb="select"]):not([data-baseweb="input"]) {
-    color: #FFFFFF;
+    color: #E2E8F0;
 }
 
-
-/* Ensure Selectbox/Input Internal Text remains Dark */
-[data-testid="stSidebar"] div[data-baseweb="select"]>div {
-    background-color: #FFFFFF !important;
-    color: #2D3748 !important;
+/* Sidebar slider track */
+[data-testid="stSidebar"] [data-baseweb="slider"] [role="progressbar"] {
+    background: linear-gradient(90deg, #00D4AA, #38BDF8) !important;
 }
 
-/* 🛠️ Fix for selected value visibility: some inner elements
-   were inheriting the white sidebar color once an item is chosen.
-   Apply the dark color to all descendants of the select container. */
+/* Sidebar select box */
+[data-testid="stSidebar"] div[data-baseweb="select"] > div {
+    background-color: #0F1929 !important;
+    color: #E2E8F0 !important;
+    border: 1px solid rgba(0,212,170,0.25) !important;
+    border-radius: 8px !important;
+}
 [data-testid="stSidebar"] div[data-baseweb="select"] * {
-    color: #2D3748 !important;
+    color: #E2E8F0 !important;
 }
 
-
-/* Dropdown menu items popup (needs to be dark text on white bg) */
+/* Dropdown popup */
 div[role="listbox"] ul {
-    background-color: white !important;
-    color: #333 !important;
+    background-color: #0D1526 !important;
+    border: 1px solid rgba(0,212,170,0.2) !important;
 }
-
 div[role="listbox"] li {
-    color: #333 !important;
-    /* Force list items black */
+    color: #E2E8F0 !important;
+}
+div[role="listbox"] li:hover {
+    background-color: rgba(0,212,170,0.1) !important;
 }
 
-/* COMPACT MAIN CARD STYLING */
+/* ── DASHBOARD CARDS ── */
 .dashboard-card {
-    background-color: #FFFFFF;
-    border-radius: 12px;
+    background: rgba(13, 21, 38, 0.85);
+    border-radius: 14px;
     padding: 16px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.6);
+    border: 1px solid rgba(0, 212, 170, 0.1);
+    box-shadow: 0 4px 32px rgba(0, 0, 0, 0.5),
+                inset 0 1px 0 rgba(255, 255, 255, 0.04);
+    backdrop-filter: blur(12px);
     margin-bottom: 15px;
     height: 100%;
 }
 
-/* METRICS */
+/* ── METRICS ── */
 .metric-title {
-    font-size: 0.75rem;
-    color: #718096;
-    font-weight: 700;
+    font-size: 0.68rem;
+    color: #475569;
+    font-weight: 600;
     text-transform: uppercase;
-    letter-spacing: 0.5px;
+    letter-spacing: 0.8px;
     margin-bottom: 4px;
 }
 
 .metric-value {
     font-size: 1.5rem;
     font-weight: 800;
-    color: #1A202C;
+    color: #00D4AA;
     line-height: 1.2;
+    text-shadow: 0 0 24px rgba(0, 212, 170, 0.35);
 }
 
 .metric-sub {
-    font-size: 0.7rem;
+    font-size: 0.65rem;
     font-weight: 600;
     margin-top: 4px;
     display: inline-block;
-    padding: 2px 6px;
-    border-radius: 4px;
+    padding: 2px 8px;
+    border-radius: 20px;
 }
 
 .sub-neutral {
-    background: #E2E8F0;
-    color: #2D3748;
+    background: rgba(71, 85, 105, 0.3);
+    color: #94A3B8;
+    border: 1px solid rgba(71,85,105,0.4);
 }
 
-
-/* BUTTONS */
-div.stButton>button {
-    background: #5E63D8 !important;
-    color: white !important;
-    height: auto !important;
-    padding: 6px 16px !important;
+/* ── BUTTONS ── */
+div.stButton > button {
+    background: linear-gradient(135deg, #00D4AA, #0891B2) !important;
+    color: #070B14 !important;
+    font-weight: 700 !important;
+    border: none !important;
+    border-radius: 8px !important;
+    padding: 6px 18px !important;
     font-size: 0.85rem !important;
+    box-shadow: 0 4px 16px rgba(0,212,170,0.3) !important;
+    transition: all 0.2s ease !important;
+}
+div.stButton > button:hover {
+    box-shadow: 0 6px 24px rgba(0,212,170,0.5) !important;
+    transform: translateY(-1px) !important;
+}
+
+/* ── INPUTS ── */
+div[data-baseweb="input"] input,
+div[data-baseweb="textarea"] textarea {
+    background: #0F1929 !important;
+    color: #E2E8F0 !important;
+    border: 1px solid rgba(0,212,170,0.2) !important;
+    border-radius: 8px !important;
+}
+div[data-baseweb="input"] input:focus {
+    border-color: #00D4AA !important;
+    box-shadow: 0 0 0 2px rgba(0,212,170,0.15) !important;
+}
+
+/* ── ALERTS / INFO BOXES ── */
+div[data-testid="stAlert"] {
+    background: rgba(0,212,170,0.08) !important;
+    border: 1px solid rgba(0,212,170,0.25) !important;
+    border-radius: 10px !important;
+    color: #94A3B8 !important;
+}
+
+/* ── SPINNER ── */
+div[data-testid="stSpinner"] p {
+    color: #00D4AA !important;
+}
+
+/* ── DATE INPUT ── */
+div[data-baseweb="datepicker"] input {
+    background: #0F1929 !important;
+    color: #E2E8F0 !important;
+    border: 1px solid rgba(0,212,170,0.2) !important;
+}
+
+/* ── CAPTION / SMALL TEXT ── */
+div[data-testid="stCaptionContainer"] p,
+.stCaption {
+    color: #475569 !important;
+}
+
+/* ── PLOTLY CHART CONTAINERS ── */
+div[data-testid="stPlotlyChart"] {
+    border-radius: 10px;
+    overflow: hidden;
+}
+
+/* ── HORIZONTAL RULE ── */
+hr {
+    border-color: rgba(0,212,170,0.15) !important;
+}
+
+/* ── SCROLLBAR ── */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: #070B14; }
+::-webkit-scrollbar-thumb { background: rgba(0,212,170,0.3); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(0,212,170,0.5); }
+
+/* ── CALENDAR FIX (weekday headers) ── */
+[role="columnheader"],
+[role="columnheader"] abbr,
+[role="columnheader"] span {
+    color: #FFFFFF !important;
+    text-decoration: none !important;
 }
