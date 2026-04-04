@@ -268,15 +268,15 @@ def get_dynamic_model(user_mult, solar_cap, wind_cap, weather_type):
 
 # --- SIDEBAR ---
 with st.sidebar:
-    st.markdown("<h1 style='font-size: 2.2rem; font-weight: 800; margin-bottom: 20px;'>Eco-Compute</h1>", unsafe_allow_html=True)
+    st.markdown("<h1 style='font-size: 2.2rem; font-weight: 800; margin-bottom: 20px; color:#FFFFFF;'>Eco-Compute</h1>", unsafe_allow_html=True)
     st.markdown("---")
-    st.markdown("### Simulation Controls")
+    st.markdown("<h3 style='color:#FFFFFF; font-size:1rem; font-weight:600; margin-bottom:8px;'>Simulation Controls</h3>", unsafe_allow_html=True)
     user_mult = st.slider("Active User Traffic", 1, 50, 15)
     solar_cap = st.slider("Solar Farm Capacity (kW)", 0, 2000, 850)
     wind_cap  = st.slider("Wind Farm Capacity (kW)",  0, 1000, 200)
-    
+
     st.markdown("---")
-    st.markdown("### Weather Condition")
+    st.markdown("<h3 style='color:#FFFFFF; font-size:1rem; font-weight:600; margin-bottom:8px;'>Weather Condition</h3>", unsafe_allow_html=True)
     # This trigger is key - it drives the entire model
     w_select = st.selectbox("Current", ["Sunny", "Partly Cloudy", "Overcast", "Rainy"], index=0, label_visibility="collapsed")
     
