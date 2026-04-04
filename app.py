@@ -41,6 +41,48 @@ def load_historical_weather():
     except:
         return None
 
+@st.cache_data(ttl=3600)  # cache each date for 1 hour
+def fetch_weather_for_date(date_str):
+    """
+    Fetch real hourly weather data for a specific date from Open-Meteo Archive API.
+    Returns dict with 24-element lists for solar (W/m²), wind (km/h), temp (°C),
+    or None if the date is unavailable (future / API error).
+    """
+    import requests as _req
+    from datetime import date as _date, timedelta as _td
+
+    # Open-Meteo archive lags by ~2 days — don't attempt future or very recent dates
+    today = _date.today()
+    try:
+        target = _date.fromisoformat(date_str)
+    except ValueError:
+        return None
+    if target >= today - _td(days=2):
+        return None  # data not yet available
+
+    url = "https://archive-api.open-meteo.com/v1/archive"
+    params = {
+        "latitude":   39.0438,       # Northern Virginia (major US data center hub)
+        "longitude":  -77.4874,
+        "start_date": date_str,
+        "end_date":   date_str,
+        "hourly":     "direct_radiation,wind_speed_10m,temperature_2m",
+        "timezone":   "America/New_York"
+    }
+    try:
+        resp = _req.get(url, params=params, timeout=10)
+        resp.raise_for_status()
+        hourly = resp.json()["hourly"]
+        if len(hourly["time"]) < 24:
+            return None
+        return {
+            "solar": hourly["direct_radiation"][:24],   # W/m²
+            "wind":  hourly["wind_speed_10m"][:24],     # km/h
+            "temp":  hourly["temperature_2m"][:24],     # °C
+        }
+    except Exception:
+        return None
+
 # --- DATA AGENT ---
 @st.cache_data
 def get_dynamic_model(user_mult, solar_cap, wind_cap, weather_type):
@@ -593,38 +635,49 @@ if st.session_state['audit_active']:
     hours_arr  = np.arange(24)
     hours_list = [f"{h:02d}:00" for h in hours_arr]
 
-    # ── Build per-hour arrays for solar (kW), wind (kW), demand (kW) ──────────
-    weather_df = load_historical_weather()
-    found_data = False
+    # ── Build per-hour arrays: 3-tier data pipeline ───────────────────────────
+    # Tier 1: Live Open-Meteo API  →  Tier 2: Local CSV cache  →  Tier 3: Simulation
+    found_data  = False
+    data_source = "simulated"   # updated as we find better data
 
-    if weather_df is not None:
-        day_data = weather_df[weather_df['time'].dt.date == audit_picker]
-        if len(day_data) >= 24:
-            found_data = True
-            rad   = day_data['solar_radiation_w_m2'].values[:24]   # W/m²
-            wspd  = day_data['wind_speed_kmh'].values[:24]          # km/h
+    def _raw_to_kw(rad_arr, wspd_arr):
+        """Convert raw radiation (W/m²) and wind speed (km/h) to kW generation."""
+        sol = np.clip((np.array(rad_arr)  / 1000.0) * solar_cap, 0, solar_cap)
+        wnd_frac = np.clip((np.array(wspd_arr) - 10.0) / (50.0 - 10.0), 0.0, 1.0) ** 1.5
+        wnd = wnd_frac * wind_cap
+        return sol, wnd
 
-            # Solar kW: radiation scales with the configured solar_cap
-            # 1000 W/m² is roughly full capacity → scale linearly
-            solar_kw = np.clip((rad / 1000.0) * solar_cap, 0, solar_cap)
+    # Tier 1 — live API fetch (cached per date for 1 h)
+    date_str = audit_picker.strftime("%Y-%m-%d")
+    with st.spinner("Fetching real weather data from Open-Meteo…"):
+        live = fetch_weather_for_date(date_str)
 
-            # Wind kW: simplified turbine curve
-            # Cut-in ~10 km/h, rated ~50 km/h, cubic-ish relationship
-            wind_frac = np.clip((wspd - 10.0) / (50.0 - 10.0), 0.0, 1.0) ** 1.5
-            wind_kw   = wind_frac * wind_cap
+    if live is not None:
+        found_data  = True
+        data_source = "api"
+        solar_kw, wind_kw = _raw_to_kw(live["solar"], live["wind"])
 
+    # Tier 2 — local CSV (covers Aug 2025 – Feb 2026 for Northern Virginia)
     if not found_data:
-        # Deterministic simulation seeded by date
+        weather_df = load_historical_weather()
+        if weather_df is not None:
+            day_data = weather_df[weather_df['time'].dt.date == audit_picker]
+            if len(day_data) >= 24:
+                found_data  = True
+                data_source = "csv"
+                solar_kw, wind_kw = _raw_to_kw(
+                    day_data['solar_radiation_w_m2'].values[:24],
+                    day_data['wind_speed_kmh'].values[:24]
+                )
+
+    # Tier 3 — deterministic simulation (seeded by date so same date = same result)
+    if not found_data:
         random.seed(int(audit_picker.strftime("%Y%m%d")))
-        day_type = random.choice(["Sunny", "Rainy", "Cloudy"])
-
+        day_type    = random.choice(["Sunny", "Rainy", "Cloudy"])
         cloud_cover = {"Sunny": 0.05, "Cloudy": 0.5, "Rainy": 0.85}[day_type]
-        solar_kw = solar_cap * np.exp(-0.15 * (hours_arr - 12.0) ** 2) * (1 - cloud_cover)
-        solar_kw = np.maximum(solar_kw, 0)
-
-        wind_spd_factor = {"Sunny": 0.25, "Cloudy": 0.55, "Rainy": 0.80}[day_type]
-        wind_kw = wind_cap * wind_spd_factor * (0.5 + 0.2 * np.sin(hours_arr / 4.0))
-        wind_kw = np.maximum(wind_kw, 0)
+        solar_kw    = np.maximum(solar_cap * np.exp(-0.15*(hours_arr-12.0)**2) * (1-cloud_cover), 0)
+        wind_factor = {"Sunny": 0.25, "Cloudy": 0.55, "Rainy": 0.80}[day_type]
+        wind_kw     = np.maximum(wind_cap * wind_factor * (0.5 + 0.2*np.sin(hours_arr/4.0)), 0)
 
     # Demand curve: business-hours shaped sine + base load
     demand_kw = 300 + (user_mult * 40) * np.clip(np.sin((hours_arr - 2) / 4.0), 0, 1)
@@ -645,15 +698,25 @@ if st.session_state['audit_active']:
     clean_hours     = int(np.sum((renewable_kw / np.maximum(demand_kw, 1)) >= 0.6))
 
     # ── ROW A: KPI Cards ──────────────────────────────────────────────────────
-    data_badge = "🟢 Real Data" if found_data else "🔵 Simulated"
+    badge_map = {
+        "api":       ("<span style='color:#10B981;'>●</span> Live — Open-Meteo API",  "#ECFDF5", "#10B981"),
+        "csv":       ("<span style='color:#5E63D8;'>●</span> Cached — Open-Meteo",   "#EEF2FF", "#5E63D8"),
+        "simulated": ("<span style='color:#94A3B8;'>●</span> Simulated",              "#F8FAFC", "#94A3B8"),
+    }
+    badge_text, badge_bg, badge_col = badge_map[data_source]
+
     st.markdown(f"""
     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
         <div style="font-size:1.05rem; font-weight:700; color:#1E293B;">
             🕒 {audit_picker.strftime('%B %d, %Y')}
+            <span style="font-size:0.7rem; font-weight:400; color:#64748B; margin-left:8px;">
+                Northern Virginia · Data Center Region
+            </span>
         </div>
-        <div style="font-size:0.72rem; font-weight:600; color:#64748B;
-                    background:#F1F5F9; padding:3px 10px; border-radius:12px;">
-            {data_badge}
+        <div style="font-size:0.72rem; font-weight:600; color:{badge_col};
+                    background:{badge_bg}; padding:3px 12px; border-radius:12px;
+                    border:1px solid {badge_col}30;">
+            {badge_text}
         </div>
     </div>
     """, unsafe_allow_html=True)
@@ -790,11 +853,62 @@ if st.session_state['audit_active']:
         )
         st.plotly_chart(fig_timeline, use_container_width=True)
 
-    # ── Data source note ──────────────────────────────────────────────────────
-    if found_data:
-        st.caption("📡 Real historical data sourced from **Open-Meteo** API · Northern Virginia region")
+    # ── Attribution footer ────────────────────────────────────────────────────
+    if data_source == "api":
+        st.markdown("""
+        <div style="display:flex; align-items:center; gap:10px; margin-top:10px;
+                    padding:8px 14px; background:#F0FDF4; border-radius:8px;
+                    border:1px solid #BBF7D0;">
+            <div style="font-size:1.4rem;">🌍</div>
+            <div>
+                <div style="font-size:0.75rem; font-weight:700; color:#15803D;">
+                    Powered by Open-Meteo
+                </div>
+                <div style="font-size:0.65rem; color:#64748B;">
+                    Free open-source weather API · Historical archive data ·
+                    <a href="https://open-meteo.com" target="_blank"
+                       style="color:#5E63D8; text-decoration:none;">open-meteo.com</a>
+                    · Location: Northern Virginia (39.04°N, 77.49°W)
+                </div>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+    elif data_source == "csv":
+        st.markdown("""
+        <div style="display:flex; align-items:center; gap:10px; margin-top:10px;
+                    padding:8px 14px; background:#EEF2FF; border-radius:8px;
+                    border:1px solid #C7D2FE;">
+            <div style="font-size:1.4rem;">💾</div>
+            <div>
+                <div style="font-size:0.75rem; font-weight:700; color:#4338CA;">
+                    Data: Open-Meteo (Cached)
+                </div>
+                <div style="font-size:0.65rem; color:#64748B;">
+                    Served from local archive · Source:
+                    <a href="https://open-meteo.com" target="_blank"
+                       style="color:#5E63D8; text-decoration:none;">open-meteo.com</a>
+                    · Northern Virginia
+                </div>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
     else:
-        st.caption(f"🔵 No real data found for this date — showing deterministic simulation (seeded by date)")
+        st.markdown("""
+        <div style="display:flex; align-items:center; gap:10px; margin-top:10px;
+                    padding:8px 14px; background:#F8FAFC; border-radius:8px;
+                    border:1px solid #E2E8F0;">
+            <div style="font-size:1.4rem;">🔵</div>
+            <div>
+                <div style="font-size:0.75rem; font-weight:700; color:#475569;">
+                    Simulated Data
+                </div>
+                <div style="font-size:0.65rem; color:#94A3B8;">
+                    No real data available for this date (future date or outside archive range).
+                    Showing physics-based deterministic simulation seeded by date.
+                </div>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
 
     st.markdown('</div>', unsafe_allow_html=True)  # audit-reveal
 
