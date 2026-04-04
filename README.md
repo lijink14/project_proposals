@@ -1,43 +1,96 @@
-# CARBON AWARE CLOUD SCHEDULER
+# EcoSync — Carbon-Aware Cloud Data Center Digital Twin
 **BCA Final Year Project**
 
-## 1. Overview
-This project is a **Digital Twin Simulation** of a modern, eco-friendly Cloud Data Center. It uses **Artificial Intelligence (Reinforcement Learning)** to optimize computing tasks, ensuring they run when **Renewable Energy** (Solar/Wind) is most available, thereby minimizing the Carbon Footprint.
+## Overview
+EcoSync is a **Digital Twin Simulation** of a modern, carbon-aware Cloud Data Center. It uses **Reinforcement Learning (PPO)** to schedule compute tasks around **Solar and Wind energy availability**, minimizing carbon footprint in real time.
 
-## 2. Key Features
-*   **Environmental Twin**: Simulates realistic 24-hour Solar and Wind energy curves.
-*   **AI Agent**: A "Carbon-Aware" scheduler (trained using PPO) that decides whether to:
-    *   `PROCESS_ALL`: Clear the queue (High throughput).
-    *   `GREEN_ONLY`: Only run tasks powered by Green Energy.
-    *   `HOLD`: Delay tasks to wait for better energy (Low Carbon).
-*   **Interactive Dashboard**: A Real-time Streamlit UI visualizing the "Energy Mix" and "Carbon Savings".
+Live weather data is pulled directly from the **Open-Meteo Archive API** (Northern Virginia data center region), making every simulation grounded in real-world conditions.
 
-## 3. Technology Stack
-*   **Language**: Python 3
-*   **Frontend**: Streamlit
-*   **AI/ML**: Stable-Baselines3, Gymnasium (OpenAI)
-*   **Data**: Pandas, NumPy
+---
 
-## 4. How to Run
-This project includes automated setup scripts for both Linux/Mac and Windows.
+## Key Features
 
-### For Mac / Linux:
-1.  Open terminal.
-2.  Navigate to the project folder.
-3.  Run: `bash run_project.sh`
+- **AI Scheduler** — PPO-trained agent (Stable-Baselines3) decides per hour:
+  - `Boost` — Process all queued tasks on clean energy
+  - `Eco` — Run only on solar + wind
+  - `Defer` — Hold non-critical tasks for a cleaner window
 
-### For Windows:
-1.  Open Command Prompt or PowerShell.
-2.  Navigate to the project folder.
-3.  Run: `run_project.bat`
+- **Live Weather Data** — Open-Meteo Archive API feeds real solar radiation and wind speed into the simulation (with CSV cache fallback)
 
-## 5. Project Structure
-*   `app.py`: The Main Dashboard interface.
-*   `training.py`: The script that trains the AI agent.
-*   `simulation/`: Contains the logic for Energy, Workload, and the Gym Environment.
-*   `models/`: Stores the trained AI brain (`ppo_datacenter.zip`).
+- **Solar + Wind Farm** — Independent capacity sliders; both sources factor into AI decisions via combined renewable fraction guardrails
 
-## 6. How to Present (for Viva)
-1.  **Start the App**: Show the dashboard.
-2.  **Explain the Graphs**: "See how the Green Line (Solar) goes up at noon? The AI attempts to shift the Red Line (Grid usage) to match it."
-3.  **Explain the AI**: "We used Reinforcement Learning. The agent gets 'points' for using Green Energy and loses 'points' for burning coal/grid energy."
+- **Monthly Eco-Audit** — Pick any date and get a full 24h breakdown: stacked bar chart (Grid / Wind / Solar), donut energy mix, AI decision timeline per hour, CO₂ avoided
+
+- **Battery Status Panel** — Real-time charge level with solar/wind input indicators
+
+- **Professional Dashboard** — Soft professional light theme, navy sidebar, emerald accent, all charts with proper contrast
+
+---
+
+## Technology Stack
+
+| Layer | Technology |
+|---|---|
+| Frontend | Streamlit |
+| AI/ML | Stable-Baselines3 (PPO), Gymnasium |
+| Weather Data | Open-Meteo Archive API |
+| Charts | Plotly |
+| Language | Python 3 |
+| Data | Pandas, NumPy |
+
+---
+
+## How to Run
+
+### Mac / Linux
+```bash
+bash run_project.sh
+```
+
+### Windows
+```
+run_project.bat
+```
+
+### Manual
+```bash
+pip install -r requirements.txt
+streamlit run app.py
+```
+
+---
+
+## Project Structure
+
+```
+project_proposals/
+├── app.py                        # Main dashboard
+├── training.py                   # PPO agent training script
+├── fetch_weather.py              # Open-Meteo API utility
+├── historical_weather_6mo.csv    # 6-month real weather archive (Northern Virginia)
+├── requirements.txt
+├── simulation/
+│   ├── ai_inference.py           # PPO inference + safety guardrails
+│   ├── environment.py            # Gymnasium custom environment
+│   ├── energy.py                 # Solar/wind generation models
+│   └── workload.py               # Task queue simulation
+├── models/
+│   └── ppo_datacenter.zip        # Trained AI model
+└── assets/
+    └── compact.css               # Dashboard theme
+```
+
+---
+
+## Data Source
+
+Real weather data sourced from **[Open-Meteo](https://open-meteo.com)** — free, open-source weather API.
+Location: Northern Virginia (39.04°N, 77.49°W) — AWS us-east-1 data center region.
+
+---
+
+## Viva Talking Points
+
+1. **AI Decision Logic** — "The PPO agent uses a combined renewable fraction `(solar+wind)/(solar_cap+wind_cap)` so decisions scale correctly regardless of farm size set in the UI."
+2. **Live Data** — "The Monthly Eco-Audit fetches real historical weather from Open-Meteo API, cached per date. For future dates it falls back to physics-based simulation seeded by date."
+3. **Why PPO?** — "Proximal Policy Optimization handles continuous state spaces well — our state vector includes hour, solar kW, wind kW, carbon intensity, queue depth, and battery level."
