@@ -1,36 +1,37 @@
 /* ============================================================
-   ECOSYNC — DARK CARBON / ECO-TECH THEME
+   ECOSYNC — PROFESSIONAL LIGHT THEME
    Palette:
-     App BG       #070B14   (deep space)
-     Card BG      #0D1526   (dark navy glass)
-     Card Border  rgba(0,212,170,0.12)
-     Primary      #00D4AA   (eco teal)
-     Solar        #FBBF24   (amber gold)
-     Wind         #38BDF8   (sky blue)
-     Grid         #F87171   (soft red)
-     Text-1       #F1F5F9
-     Text-2       #94A3B8
-     Text-3       #475569
+     App BG       #F0F5FA   (pearl steel)
+     Card BG      #FFFFFF   (white glass)
+     Card Border  rgba(8,145,178,0.14)
+     Primary      #059669   (emerald eco green)
+     Solar        #D97706   (amber)
+     Wind         #0284C7   (sky blue)
+     Grid         #64748B   (slate)
+     Sidebar      #0B2545   (deep navy)
+     Text-1       #0F172A
+     Text-2       #334155
+     Text-3       #64748B
    ============================================================ */
 
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
 
 /* ── BASE ── */
 .stApp {
-    background-color: #070B14 !important;
-    background-image: radial-gradient(ellipse at 20% 20%, rgba(0,212,170,0.04) 0%, transparent 60%),
-                      radial-gradient(ellipse at 80% 80%, rgba(56,189,248,0.04) 0%, transparent 60%);
+    background-color: #F0F5FA !important;
+    background-image: radial-gradient(ellipse at 20% 10%, rgba(8,145,178,0.05) 0%, transparent 55%),
+                      radial-gradient(ellipse at 80% 90%, rgba(5,150,105,0.04) 0%, transparent 55%);
 }
 
 html, body, [class*="css"] {
     font-family: 'Inter', sans-serif;
-    color: #E2E8F0;
+    color: #0F172A;
 }
 
 /* ── SIDEBAR ── */
 [data-testid="stSidebar"] {
-    background: linear-gradient(180deg, #080E1E 0%, #060A14 100%) !important;
-    border-right: 1px solid rgba(0, 212, 170, 0.15) !important;
+    background: linear-gradient(180deg, #0B2545 0%, #071A36 100%) !important;
+    border-right: 1px solid rgba(8,145,178,0.2) !important;
 }
 
 [data-testid="stSidebar"] h1,
@@ -40,7 +41,7 @@ html, body, [class*="css"] {
 [data-testid="stSidebar"] .stMarkdown p,
 [data-testid="stSidebar"] .stCaption,
 [data-testid="stSidebar"] div[data-testid="stMarkdownContainer"] p {
-    color: #E2E8F0 !important;
+    color: #CBD5E1 !important;
 }
 
 [data-testid="stSidebar"] div[data-testid="stSliderTickBar"] > div,
@@ -49,46 +50,45 @@ html, body, [class*="css"] {
 }
 
 [data-testid="stSidebar"] div:not([data-baseweb="select"]):not([data-baseweb="input"]) {
-    color: #E2E8F0;
+    color: #CBD5E1;
 }
 
 /* Sidebar slider track */
 [data-testid="stSidebar"] [data-baseweb="slider"] [role="progressbar"] {
-    background: linear-gradient(90deg, #00D4AA, #38BDF8) !important;
+    background: linear-gradient(90deg, #059669, #0284C7) !important;
 }
 
 /* Sidebar select box */
 [data-testid="stSidebar"] div[data-baseweb="select"] > div {
-    background-color: #0F1929 !important;
-    color: #E2E8F0 !important;
-    border: 1px solid rgba(0,212,170,0.25) !important;
+    background-color: #0F2E55 !important;
+    color: #CBD5E1 !important;
+    border: 1px solid rgba(8,145,178,0.3) !important;
     border-radius: 8px !important;
 }
 [data-testid="stSidebar"] div[data-baseweb="select"] * {
-    color: #E2E8F0 !important;
+    color: #CBD5E1 !important;
 }
 
 /* Dropdown popup */
 div[role="listbox"] ul {
-    background-color: #0D1526 !important;
-    border: 1px solid rgba(0,212,170,0.2) !important;
+    background-color: #0B2545 !important;
+    border: 1px solid rgba(8,145,178,0.25) !important;
 }
 div[role="listbox"] li {
-    color: #E2E8F0 !important;
+    color: #CBD5E1 !important;
 }
 div[role="listbox"] li:hover {
-    background-color: rgba(0,212,170,0.1) !important;
+    background-color: rgba(8,145,178,0.15) !important;
 }
 
 /* ── DASHBOARD CARDS ── */
 .dashboard-card {
-    background: rgba(13, 21, 38, 0.85);
+    background: #FFFFFF;
     border-radius: 14px;
     padding: 16px;
-    border: 1px solid rgba(0, 212, 170, 0.1);
-    box-shadow: 0 4px 32px rgba(0, 0, 0, 0.5),
-                inset 0 1px 0 rgba(255, 255, 255, 0.04);
-    backdrop-filter: blur(12px);
+    border: 1px solid rgba(8,145,178,0.12);
+    box-shadow: 0 2px 12px rgba(15,23,42,0.07),
+                0 1px 3px rgba(15,23,42,0.05);
     margin-bottom: 15px;
     height: 100%;
 }
@@ -96,7 +96,7 @@ div[role="listbox"] li:hover {
 /* ── METRICS ── */
 .metric-title {
     font-size: 0.68rem;
-    color: #475569;
+    color: #64748B;
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.8px;
@@ -106,9 +106,8 @@ div[role="listbox"] li:hover {
 .metric-value {
     font-size: 1.5rem;
     font-weight: 800;
-    color: #00D4AA;
+    color: #059669;
     line-height: 1.2;
-    text-shadow: 0 0 24px rgba(0, 212, 170, 0.35);
 }
 
 .metric-sub {
@@ -121,65 +120,76 @@ div[role="listbox"] li:hover {
 }
 
 .sub-neutral {
-    background: rgba(71, 85, 105, 0.3);
-    color: #94A3B8;
-    border: 1px solid rgba(71,85,105,0.4);
+    background: rgba(100,116,139,0.1);
+    color: #64748B;
+    border: 1px solid rgba(100,116,139,0.2);
 }
 
 /* ── BUTTONS ── */
 div.stButton > button {
-    background: linear-gradient(135deg, #00D4AA, #0891B2) !important;
-    color: #070B14 !important;
+    background: linear-gradient(135deg, #059669, #0891B2) !important;
+    color: #FFFFFF !important;
     font-weight: 700 !important;
     border: none !important;
     border-radius: 8px !important;
     padding: 6px 18px !important;
     font-size: 0.85rem !important;
-    box-shadow: 0 4px 16px rgba(0,212,170,0.3) !important;
+    box-shadow: 0 4px 14px rgba(5,150,105,0.25) !important;
     transition: all 0.2s ease !important;
 }
 div.stButton > button:hover {
-    box-shadow: 0 6px 24px rgba(0,212,170,0.5) !important;
+    box-shadow: 0 6px 20px rgba(5,150,105,0.4) !important;
     transform: translateY(-1px) !important;
 }
 
 /* ── INPUTS ── */
 div[data-baseweb="input"] input,
 div[data-baseweb="textarea"] textarea {
-    background: #0F1929 !important;
-    color: #E2E8F0 !important;
-    border: 1px solid rgba(0,212,170,0.2) !important;
+    background: #F8FAFC !important;
+    color: #0F172A !important;
+    border: 1px solid rgba(8,145,178,0.25) !important;
     border-radius: 8px !important;
 }
 div[data-baseweb="input"] input:focus {
-    border-color: #00D4AA !important;
-    box-shadow: 0 0 0 2px rgba(0,212,170,0.15) !important;
+    border-color: #059669 !important;
+    box-shadow: 0 0 0 2px rgba(5,150,105,0.15) !important;
 }
 
 /* ── ALERTS / INFO BOXES ── */
 div[data-testid="stAlert"] {
-    background: rgba(0,212,170,0.08) !important;
-    border: 1px solid rgba(0,212,170,0.25) !important;
+    background: rgba(5,150,105,0.06) !important;
+    border: 1px solid rgba(5,150,105,0.2) !important;
     border-radius: 10px !important;
-    color: #94A3B8 !important;
+    color: #334155 !important;
 }
 
 /* ── SPINNER ── */
 div[data-testid="stSpinner"] p {
-    color: #00D4AA !important;
+    color: #059669 !important;
 }
 
 /* ── DATE INPUT ── */
 div[data-baseweb="datepicker"] input {
-    background: #0F1929 !important;
-    color: #E2E8F0 !important;
-    border: 1px solid rgba(0,212,170,0.2) !important;
+    background: #F8FAFC !important;
+    color: #0F172A !important;
+    border: 1px solid rgba(8,145,178,0.25) !important;
 }
 
 /* ── CAPTION / SMALL TEXT ── */
 div[data-testid="stCaptionContainer"] p,
 .stCaption {
-    color: #475569 !important;
+    color: #64748B !important;
+}
+
+/* ── MAIN CONTENT TEXT ── */
+.stMarkdown p, .stMarkdown li, .stMarkdown h1, .stMarkdown h2, .stMarkdown h3 {
+    color: #0F172A !important;
+}
+
+/* ── RADIO / CHECKBOX LABELS ── */
+[data-testid="stRadio"] label,
+[data-testid="stCheckbox"] label {
+    color: #334155 !important;
 }
 
 /* ── PLOTLY CHART CONTAINERS ── */
@@ -190,19 +200,19 @@ div[data-testid="stPlotlyChart"] {
 
 /* ── HORIZONTAL RULE ── */
 hr {
-    border-color: rgba(0,212,170,0.15) !important;
+    border-color: rgba(8,145,178,0.15) !important;
 }
 
 /* ── SCROLLBAR ── */
 ::-webkit-scrollbar { width: 6px; }
-::-webkit-scrollbar-track { background: #070B14; }
-::-webkit-scrollbar-thumb { background: rgba(0,212,170,0.3); border-radius: 3px; }
-::-webkit-scrollbar-thumb:hover { background: rgba(0,212,170,0.5); }
+::-webkit-scrollbar-track { background: #F0F5FA; }
+::-webkit-scrollbar-thumb { background: rgba(8,145,178,0.3); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(8,145,178,0.5); }
 
 /* ── CALENDAR FIX (weekday headers) ── */
 [role="columnheader"],
 [role="columnheader"] abbr,
 [role="columnheader"] span {
-    color: #FFFFFF !important;
+    color: #0F172A !important;
     text-decoration: none !important;
 }

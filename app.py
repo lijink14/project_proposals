@@ -325,12 +325,12 @@ with r2_1:
     st.markdown('<div class="dashboard-card">', unsafe_allow_html=True)
     st.markdown('<div class="metric-title">Resource Split</div>', unsafe_allow_html=True)
     sums = df[['Compute', 'Storage', 'Network']].sum()
-    fig_p = px.pie(names=sums.index, values=sums.values, hole=0.65, color_discrete_sequence=['#00D4AA', '#38BDF8', '#FBBF24'])
+    fig_p = px.pie(names=sums.index, values=sums.values, hole=0.65, color_discrete_sequence=['#059669', '#0284C7', '#D97706'])
     fig_p.update_traces(textposition='inside', textinfo='percent+label', textfont=dict(color='white'))
     fig_p.update_layout(height=180, margin=dict(l=0,r=0,t=0,b=0), showlegend=False,
                         paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)',
-                        font=dict(color='#94A3B8'))
-    fig_p.add_annotation(text=f"{int(sums.sum())}", font_size=14, showarrow=False, font_color='#E2E8F0')
+                        font=dict(color='#334155'))
+    fig_p.add_annotation(text=f"{int(sums.sum())}", font_size=14, showarrow=False, font_color='#0F172A')
     st.plotly_chart(fig_p, use_container_width=True)
     st.markdown('</div>', unsafe_allow_html=True)
 
@@ -342,16 +342,16 @@ with r2_2:
         st.markdown('<div class="metric-title">Live Load Profile (AI Reacting)</div>', unsafe_allow_html=True)
         fig_l = go.Figure()
         fig_l.add_trace(go.Scatter(x=df['Hour'], y=df['Total'], fill='tozeroy',
-                                   fillcolor='rgba(0,212,170,0.08)', line=dict(color='#00D4AA', width=2), name='Demand'))
-        fig_l.add_trace(go.Scatter(x=df['Hour'], y=df['Solar'], line=dict(color='#FBBF24', width=2, dash='dot'), name=f'Solar ({w_select})'))
-        fig_l.add_trace(go.Scatter(x=df['Hour'], y=df['Wind'],  line=dict(color='#38BDF8', width=2, dash='dash'), name=f'Wind ({w_select})'))
+                                   fillcolor='rgba(5,150,105,0.08)', line=dict(color='#059669', width=2), name='Demand'))
+        fig_l.add_trace(go.Scatter(x=df['Hour'], y=df['Solar'], line=dict(color='#D97706', width=2, dash='dot'), name=f'Solar ({w_select})'))
+        fig_l.add_trace(go.Scatter(x=df['Hour'], y=df['Wind'],  line=dict(color='#0284C7', width=2, dash='dash'), name=f'Wind ({w_select})'))
 
         y_max = max(df['Total'].max(), df['Solar'].max(), df['Wind'].max()) * 1.25
         fig_l.update_layout(height=180, margin=dict(l=0,r=0,t=0,b=0),
-                            paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(13,21,38,0.6)',
-                            legend=dict(orientation="h", y=1.1, font=dict(color='#94A3B8')),
-                            yaxis=dict(range=[0, y_max], gridcolor='rgba(255,255,255,0.05)', color='#475569'),
-                            xaxis=dict(gridcolor='rgba(255,255,255,0.05)', color='#475569'))
+                            paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(240,245,250,0.7)',
+                            legend=dict(orientation="h", y=1.1, font=dict(color='#334155')),
+                            yaxis=dict(range=[0, y_max], gridcolor='rgba(0,0,0,0.06)', color='#64748B'),
+                            xaxis=dict(gridcolor='rgba(0,0,0,0.06)', color='#64748B'))
         st.plotly_chart(fig_l, use_container_width=True)
 
         
@@ -382,49 +382,47 @@ with r2_2:
             health_text = "Good"
             color = "#F59E0B" # Orange
             
-        def mini_bar(val, max_v=100, col="#00D4AA"):
+        def mini_bar(val, max_v=100, col="#059669"):
             pct = min((val / max_v) * 100, 100)
-            return f"""<div style="background:rgba(255,255,255,0.07); width:100%; height:5px; border-radius:3px; margin-top:3px;">
-                <div style="background:{col}; width:{pct}%; height:100%; border-radius:3px;
-                            box-shadow: 0 0 8px {col}80;"></div></div>"""
+            return f"""<div style="background:rgba(0,0,0,0.07); width:100%; height:5px; border-radius:3px; margin-top:3px;">
+                <div style="background:{col}; width:{pct}%; height:100%; border-radius:3px;"></div></div>"""
 
         st.markdown(f"""
         <div style="display:flex; justify-content:center; margin-bottom:12px;">
-            <div style="border:2px solid {color}40; border-radius:10px; padding:3px;
+            <div style="border:2px solid {color}50; border-radius:10px; padding:3px;
                         width:36px; height:66px; position:relative; margin-right:14px;
-                        box-shadow: 0 0 16px {color}30;">
+                        box-shadow: 0 2px 10px {color}25;">
                 <div style="background:linear-gradient(0deg,{color},{color}99);
                             width:100%; height:{bat_pct}%; position:absolute; bottom:0;
                             border-radius:6px; transition:height 0.5s;"></div>
             </div>
             <div style="display:flex; flex-direction:column; justify-content:center;">
-                <div style="font-size:1.6rem; font-weight:800; color:{color};
-                            text-shadow:0 0 20px {color}60;">{bat_pct}%</div>
-                <div style="font-size:0.7rem; color:#475569; letter-spacing:0.5px;">CHARGE LEVEL</div>
+                <div style="font-size:1.6rem; font-weight:800; color:{color};">{bat_pct}%</div>
+                <div style="font-size:0.7rem; color:#64748B; letter-spacing:0.5px;">CHARGE LEVEL</div>
             </div>
         </div>
-        <div style="font-size:0.72rem; color:#64748B; padding-top:8px;
-                    border-top:1px solid rgba(255,255,255,0.06);">
+        <div style="font-size:0.72rem; color:#475569; padding-top:8px;
+                    border-top:1px solid rgba(0,0,0,0.08);">
             <div style="margin-bottom:7px;">
-                <div style="display:flex; justify-content:space-between; color:#94A3B8;">
-                    <span>☀️ Solar Input</span><span style="color:#FBBF24; font-weight:600;">{solar_in}%</span>
+                <div style="display:flex; justify-content:space-between; color:#475569;">
+                    <span>☀️ Solar Input</span><span style="color:#D97706; font-weight:600;">{solar_in}%</span>
                 </div>
-                {mini_bar(solar_in, 100, "#FBBF24")}
+                {mini_bar(solar_in, 100, "#D97706")}
             </div>
             <div style="margin-bottom:7px;">
-                <div style="display:flex; justify-content:space-between; color:#94A3B8;">
-                    <span>💨 Wind Input</span><span style="color:#38BDF8; font-weight:600;">{int(wind_fraction_pct)}%</span>
+                <div style="display:flex; justify-content:space-between; color:#475569;">
+                    <span>💨 Wind Input</span><span style="color:#0284C7; font-weight:600;">{int(wind_fraction_pct)}%</span>
                 </div>
-                {mini_bar(wind_fraction_pct, 100, "#38BDF8")}
+                {mini_bar(wind_fraction_pct, 100, "#0284C7")}
             </div>
             <div style="margin-bottom:7px;">
-                <div style="display:flex; justify-content:space-between; color:#94A3B8;">
-                    <span>❤️ Health</span><span style="color:#34D399; font-weight:600;">{health_pct}%</span>
+                <div style="display:flex; justify-content:space-between; color:#475569;">
+                    <span>❤️ Health</span><span style="color:#059669; font-weight:600;">{health_pct}%</span>
                 </div>
-                {mini_bar(health_pct, 100, "#34D399")}
+                {mini_bar(health_pct, 100, "#059669")}
             </div>
-            <div style="font-size:0.65rem; color:#475569; margin-top:6px;">
-                Est. Replace: <strong style="color:#94A3B8;">{8 if health_pct>95 else 6} Years</strong>
+            <div style="font-size:0.65rem; color:#64748B; margin-top:6px;">
+                Est. Replace: <strong style="color:#334155;">{8 if health_pct>95 else 6} Years</strong>
             </div>
         </div>
         """, unsafe_allow_html=True)
@@ -472,7 +470,7 @@ with ci_1:
         car_text = f"🚗 <strong>{cars} Cars</strong> removed from road"
         l_col = "#5E63D8"
     
-    st.markdown(f"<div style='font-size:0.85rem; line-height:1.6;'>{impact_text}<br>{car_text}<br><span style='font-size:0.75rem; color:#6B7280;'>{profit_text}</span></div>", unsafe_allow_html=True)
+    st.markdown(f"<div style='font-size:0.85rem; line-height:1.6; color:#334155;'>{impact_text}<br>{car_text}<br><span style='font-size:0.75rem; color:#64748B;'>{profit_text}</span></div>", unsafe_allow_html=True)
 
 with ci_2:
     months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
@@ -483,10 +481,11 @@ with ci_2:
     fig_y.add_trace(go.Scatter(x=months, y=perf_curve, mode='lines+markers', name='System Productivity', yaxis='y2', line=dict(color='#64748B', width=2, dash='dot')))
     
     fig_y.update_layout(
-        height=250, margin=dict(l=0,r=0,t=10,b=0), template="plotly_dark", paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(13,21,38,0.5)", 
-        showlegend=True, legend=dict(orientation="h", y=1.1),
-        yaxis=dict(title="Carbon Impact"),
-        yaxis2=dict(title="Productivity Score", overlaying='y', side='right', range=[0, 110])
+        height=250, margin=dict(l=0,r=0,t=10,b=0), paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(240,245,250,0.7)",
+        showlegend=True, legend=dict(orientation="h", y=1.1, font=dict(color='#334155')),
+        font=dict(color='#334155'),
+        yaxis=dict(title="Carbon Impact", gridcolor='rgba(0,0,0,0.07)', color='#64748B'),
+        yaxis2=dict(title="Productivity Score", overlaying='y', side='right', range=[0, 110], color='#64748B')
     )
     st.plotly_chart(fig_y, use_container_width=True)
 
@@ -514,7 +513,7 @@ with r3_1:
         fig_b = go.Figure()
         fig_b.add_trace(go.Bar(y=['Co2'], x=[v1], orientation='h', name='Std', marker_color='#9CA3AF'))
         fig_b.add_trace(go.Bar(y=['Co2'], x=[v2], orientation='h', name='Eco', marker_color='#10B981'))
-        fig_b.update_layout(height=120, margin=dict(l=0,r=0,t=0,b=0), template="plotly_dark", paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(13,21,38,0.5)", showlegend=False)
+        fig_b.update_layout(height=120, margin=dict(l=0,r=0,t=0,b=0), paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(240,245,250,0.7)", showlegend=False, font=dict(color='#334155'))
         st.plotly_chart(fig_b, use_container_width=True)
         st.caption(f"Net Savings: {int(v1-v2)} kgCO2")
     st.markdown('</div>', unsafe_allow_html=True)
@@ -567,27 +566,27 @@ with w2:
     
     # 2. Actual Forecast (Solid Color, Fill)
     # Color changes with weather
-    color_map = {"Sunny": "#F59E0B", "Partly Cloudy": "#FBBF24", "Overcast": "#9CA3AF", "Rainy": "#6B7280"}
+    color_map = {"Sunny": "#D97706", "Partly Cloudy": "#F59E0B", "Overcast": "#94A3B8", "Rainy": "#64748B"}
     
     fig_f.add_trace(go.Scatter(x=df['Hour'], y=df['Solar'], 
                                name='Forecast', fill='tozeroy', 
                                line=dict(color=color_map[w_select], width=3)))
     
 
-    fig_f.update_layout(height=200, margin=dict(l=0,r=0,t=10,b=0), template="plotly_dark", paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(13,21,38,0.5)", legend=dict(orientation="h", y=1.1))
+    fig_f.update_layout(height=200, margin=dict(l=0,r=0,t=10,b=0), paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(240,245,250,0.7)", legend=dict(orientation="h", y=1.1, font=dict(color='#334155')), font=dict(color='#334155'), yaxis=dict(gridcolor='rgba(0,0,0,0.07)', color='#64748B'), xaxis=dict(gridcolor='rgba(0,0,0,0.06)', color='#64748B'))
     st.plotly_chart(fig_f, use_container_width=True)
     st.markdown('</div>', unsafe_allow_html=True)
 
 # --- ROW 5: AI NEURAL ENGINE ---
-st.markdown('<div class="dashboard-card" style="border-left: 4px solid #00D4AA; box-shadow: 0 0 32px rgba(0,212,170,0.08);">', unsafe_allow_html=True)
-st.markdown('<div class="metric-title" style="color:#00D4AA; font-size:0.8rem; letter-spacing:1.5px;">🧠 ECOSYNC NEURAL ENGINE — LIVE DECISION STREAM</div>', unsafe_allow_html=True)
+st.markdown('<div class="dashboard-card" style="border-left: 4px solid #059669; box-shadow: 0 2px 16px rgba(5,150,105,0.1);">', unsafe_allow_html=True)
+st.markdown('<div class="metric-title" style="color:#059669; font-size:0.8rem; letter-spacing:1.5px;">🧠 ECOSYNC NEURAL ENGINE — LIVE DECISION STREAM</div>', unsafe_allow_html=True)
 
 c_ai_1, c_ai_2 = st.columns([4, 1])
 with c_ai_1:
     st.markdown(f"""
     <div style="font-family:'Consolas','Courier New',monospace; font-size:0.83rem;
-                color:#94A3B8; background:rgba(0,0,0,0.4); padding:12px 14px;
-                border-radius:8px; border:1px solid rgba(0,212,170,0.12);
+                color:#334155; background:rgba(15,42,74,0.05); padding:12px 14px;
+                border-radius:8px; border:1px solid rgba(8,145,178,0.18);
                 line-height:1.7;">
     {ai_decision}
     </div>
@@ -614,9 +613,9 @@ import random
 # --- ROW 6: MONTHLY ECO-AUDIT (Redesigned with Solar + Wind) ---
 st.markdown('<div id="audit-trigger-area">', unsafe_allow_html=True)
 st.markdown("""
-<div class="dashboard-card" style="margin-top:20px; border-left:4px solid #34D399;
-     box-shadow:0 0 32px rgba(52,211,153,0.08);">
-    <div class="metric-title" style="color:#34D399; font-size:0.8rem; letter-spacing:1.5px; margin-bottom:4px;">
+<div class="dashboard-card" style="margin-top:20px; border-left:4px solid #059669;
+     box-shadow:0 2px 16px rgba(5,150,105,0.08);">
+    <div class="metric-title" style="color:#059669; font-size:0.8rem; letter-spacing:1.5px; margin-bottom:4px;">
         📅 MONTHLY ECO-AUDIT — SOLAR &amp; WIND BREAKDOWN
     </div>
 </div>
@@ -734,7 +733,7 @@ if st.session_state['audit_active']:
 
     st.markdown(f"""
     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
-        <div style="font-size:1.05rem; font-weight:700; color:#1E293B;">
+        <div style="font-size:1.05rem; font-weight:700; color:#0F172A;">
             🕒 {audit_picker.strftime('%B %d, %Y')}
             <span style="font-size:0.7rem; font-weight:400; color:#64748B; margin-left:8px;">
                 Northern Virginia · Data Center Region
@@ -750,15 +749,14 @@ if st.session_state['audit_active']:
 
     k1, k2, k3, k4 = st.columns(4)
     def kpi(label, value, sub, color):
-        return f"""<div style="background:rgba(0,0,0,0.3); border-radius:12px; padding:14px 10px;
-                               border-top:3px solid {color}; text-align:center;
+        return f"""<div style="background:#FFFFFF; border-radius:12px; padding:14px 10px;
+                               text-align:center;
                                border:1px solid {color}25; border-top:3px solid {color};
-                               box-shadow:0 4px 20px rgba(0,0,0,0.3);">
-                     <div style="font-size:1.4rem; font-weight:800; color:{color};
-                                 text-shadow:0 0 20px {color}50;">{value}</div>
-                     <div style="font-size:0.68rem; font-weight:600; color:#94A3B8;
+                               box-shadow:0 2px 10px rgba(15,23,42,0.07);">
+                     <div style="font-size:1.4rem; font-weight:800; color:{color};">{value}</div>
+                     <div style="font-size:0.68rem; font-weight:600; color:#64748B;
                                  text-transform:uppercase; letter-spacing:0.5px; margin:4px 0;">{label}</div>
-                     <div style="font-size:0.6rem; color:#475569;">{sub}</div>
+                     <div style="font-size:0.6rem; color:#94A3B8;">{sub}</div>
                    </div>"""
     with k1: st.markdown(kpi("Renewable Coverage", f"{renewable_pct}%",   "Solar + Wind vs Demand", "#10B981"), unsafe_allow_html=True)
     with k2: st.markdown(kpi("CO₂ Avoided",        f"{co2_avoided_kg} kg","vs Full-Grid Equivalent", "#5E63D8"), unsafe_allow_html=True)
@@ -768,41 +766,47 @@ if st.session_state['audit_active']:
     st.markdown("<br>", unsafe_allow_html=True)
 
     # ── ROW B: Main Stacked Area Chart ────────────────────────────────────────
-    st.markdown('<div style="font-size:0.8rem; font-weight:600; color:#475569; margin-bottom:6px;">⚡ 24-Hour Generation vs Demand</div>', unsafe_allow_html=True)
+    st.markdown('<div style="font-size:0.8rem; font-weight:600; color:#334155; margin-bottom:6px;">⚡ 24-Hour Generation vs Demand</div>', unsafe_allow_html=True)
+
+    # Compute correct non-negative stack values that sum exactly to demand_kw
+    _solar_used = np.minimum(solar_kw, demand_kw)
+    _wind_used  = np.minimum(wind_kw, np.maximum(demand_kw - solar_kw, 0))
+    _grid_used  = np.maximum(demand_kw - solar_kw - wind_kw, 0)
 
     fig_main = go.Figure()
     # Grid area (bottom of stack)
     fig_main.add_trace(go.Bar(
-        x=hours_list, y=grid_kw,
-        name="Grid (Fossil)", marker_color="#475569",
+        x=hours_list, y=_grid_used,
+        name="Grid (Fossil)", marker_color="#64748B",
         hovertemplate='%{x}<br>Grid: %{y:.0f} kW<extra></extra>'
     ))
     # Wind area (middle)
     fig_main.add_trace(go.Bar(
-        x=hours_list, y=np.minimum(wind_kw, demand_kw - np.maximum(demand_kw - wind_kw - solar_kw, 0) - grid_kw + wind_kw),
-        name="Wind", marker_color="#38BDF8",
+        x=hours_list, y=_wind_used,
+        name="Wind", marker_color="#0284C7",
         hovertemplate='%{x}<br>Wind: %{y:.0f} kW<extra></extra>'
     ))
     # Solar area (top)
     fig_main.add_trace(go.Bar(
-        x=hours_list, y=np.minimum(solar_kw, demand_kw),
-        name="Solar", marker_color="#F59E0B",
+        x=hours_list, y=_solar_used,
+        name="Solar", marker_color="#D97706",
         hovertemplate='%{x}<br>Solar: %{y:.0f} kW<extra></extra>'
     ))
     # Demand line overlay
     fig_main.add_trace(go.Scatter(
         x=hours_list, y=demand_kw,
         name="Demand", mode='lines',
-        line=dict(color='#F1F5F9', width=2, dash='dot'),
+        line=dict(color='#0F172A', width=2, dash='dot'),
         hovertemplate='%{x}<br>Demand: %{y:.0f} kW<extra></extra>'
     ))
     fig_main.update_layout(
         barmode='stack', height=230,
         margin=dict(l=0, r=0, t=10, b=0),
-        template="plotly_dark", paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(13,21,38,0.5)",
-        legend=dict(orientation="h", y=1.12, x=0),
-        yaxis=dict(title="kW", gridcolor="#F1F5F9"),
-        xaxis=dict(tickangle=-45, tickfont=dict(size=10))
+        paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(240,245,250,0.7)",
+        legend=dict(orientation="h", y=1.12, x=0, font=dict(color='#334155')),
+        font=dict(color='#334155'),
+        yaxis=dict(title="kW", gridcolor="#CBD5E1", color='#64748B'),
+        xaxis=dict(tickangle=-45, tickfont=dict(size=10), color='#64748B')
     )
     st.plotly_chart(fig_main, use_container_width=True)
 
@@ -810,7 +814,7 @@ if st.session_state['audit_active']:
     col_donut, col_timeline = st.columns([1, 2])
 
     with col_donut:
-        st.markdown('<div style="font-size:0.8rem; font-weight:600; color:#475569; margin-bottom:6px;">🍩 Daily Energy Mix</div>', unsafe_allow_html=True)
+        st.markdown('<div style="font-size:0.8rem; font-weight:600; color:#334155; margin-bottom:6px;">🍩 Daily Energy Mix</div>', unsafe_allow_html=True)
         solar_used = float(np.minimum(solar_kw, demand_kw).sum())
         wind_used  = float(np.minimum(wind_kw,  np.maximum(demand_kw - solar_kw, 0)).sum())
         grid_used_total = float(total_grid)
@@ -818,21 +822,23 @@ if st.session_state['audit_active']:
             labels=["Solar", "Wind", "Grid"],
             values=[solar_used, wind_used, grid_used_total],
             hole=0.55,
-            marker=dict(colors=["#F59E0B", "#06B6D4", "#CBD5E1"]),
+            marker=dict(colors=["#D97706", "#0284C7", "#94A3B8"]),
             textinfo='percent',
             hovertemplate='%{label}: %{value:.0f} kWh (%{percent})<extra></extra>'
         ))
         fig_donut.update_layout(
             height=220, margin=dict(l=0, r=0, t=10, b=0),
+            paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
             showlegend=True,
-            legend=dict(orientation="h", y=-0.1, x=0.1, font=dict(size=10)),
+            legend=dict(orientation="h", y=-0.1, x=0.1, font=dict(size=10, color='#334155')),
+            font=dict(color='#334155'),
             annotations=[dict(text=f"<b>{renewable_pct}%</b><br>clean", x=0.5, y=0.5,
-                              font=dict(size=13, color="#00D4AA"), showarrow=False)]
+                              font=dict(size=13, color="#059669"), showarrow=False)]
         )
         st.plotly_chart(fig_donut, use_container_width=True)
 
     with col_timeline:
-        st.markdown('<div style="font-size:0.8rem; font-weight:600; color:#475569; margin-bottom:6px;">🤖 AI Decision Timeline (per hour)</div>', unsafe_allow_html=True)
+        st.markdown('<div style="font-size:0.8rem; font-weight:600; color:#334155; margin-bottom:6px;">🤖 AI Decision Timeline (per hour)</div>', unsafe_allow_html=True)
 
         # Derive per-hour AI action using the same guardrail logic
         audit_actions = []
@@ -876,11 +882,12 @@ if st.session_state['audit_active']:
             fig_timeline.add_trace(go.Bar(x=[None], y=[None], name=label, marker_color=color))
         fig_timeline.update_layout(
             height=220, margin=dict(l=0, r=0, t=10, b=0),
-            template="plotly_dark", paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(13,21,38,0.5)",
+            paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(240,245,250,0.7)",
             barmode='stack',
-            legend=dict(orientation="h", y=1.15, x=0, font=dict(size=10)),
+            legend=dict(orientation="h", y=1.15, x=0, font=dict(size=10, color='#334155')),
+            font=dict(color='#334155'),
             yaxis=dict(visible=False),
-            xaxis=dict(tickangle=-45, tickfont=dict(size=9))
+            xaxis=dict(tickangle=-45, tickfont=dict(size=9), color='#64748B')
         )
         st.plotly_chart(fig_timeline, use_container_width=True)
 
