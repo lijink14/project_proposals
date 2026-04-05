@@ -1,4 +1,4 @@
-# EcoSync — Carbon-Aware Cloud Data Center Digital Twin
+# Carbon-Aware Cloud Scheduler
 **BCA Final Year Project**
 
 ## Overview
